@@ -967,7 +967,7 @@ function buildChartProdFilter(){
   allCb.type = 'checkbox'; allCb.checked = (STATE.chartProds === null);
   allCb.addEventListener('change', ()=>{
     if(allCb.checked){ STATE.chartProds = null; }
-    else { STATE.chartProds = new Set(PRODUCTS); }  // 取消全选=全部选中（等价）
+    else { STATE.chartProds = new Set(); }  // 取消全选=清空（仅保留焦点）
     syncProdFilterUI();
     renderCharts();
   });
@@ -999,13 +999,8 @@ function syncProdFilterState(){
   if(checked === PRODUCTS.length){
     STATE.chartProds = null;   // 全选
     if(allCb) allCb.checked = true;
-  } else if(checked === 0){
-    STATE.chartProds = new Set();  // 全不选（回退为全选，至少保留一个）
-    STATE.chartProds = null;
-    if(allCb) allCb.checked = true;
-    cbs.forEach(cb => cb.checked = true);
   } else {
-    STATE.chartProds = selected;
+    STATE.chartProds = selected;  // 部分选中或全不选（允许空集，getChartProds 会补回焦点）
     if(allCb) allCb.checked = false;
   }
 }
@@ -2680,7 +2675,7 @@ const SHARE = ${json};
     allCb.type = 'checkbox'; allCb.checked = (st.prodFilter === null);
     allCb.addEventListener('change', ()=>{
       if(allCb.checked){ st.prodFilter = null; }
-      else { st.prodFilter = new Set(allProds); }
+      else { st.prodFilter = new Set(); }
       syncMviewProdUI();
       renderMview();
     });
@@ -2710,12 +2705,8 @@ const SHARE = ${json};
     if(checked === allProds.length){
       st.prodFilter = null;
       if(allCb) allCb.checked = true;
-    } else if(checked === 0){
-      st.prodFilter = null;
-      if(allCb) allCb.checked = true;
-      cbs.forEach(cb => cb.checked = true);
     } else {
-      st.prodFilter = selected;
+      st.prodFilter = selected;  // 允许空集
       if(allCb) allCb.checked = false;
     }
   }
