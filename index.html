@@ -66,12 +66,16 @@
                    font-size:12.5px;cursor:pointer;}
   .comp-ops{display:flex;gap:10px;margin-bottom:6px;font-size:12px;color:var(--brand);}
   .comp-ops a{cursor:pointer;text-decoration:underline;}
-  .btn{background:var(--brand);color:#fff;border:none;padding:9px 18px;border-radius:8px;
-       font-size:13px;font-weight:600;cursor:pointer;transition:.15s;}
-  .btn:hover{background:#264272;}
-  .btn.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand);}
-  .btn.share{background:#2e7d4f;color:#fff;}
-  .btn.share:hover{background:#245f3d;}
+  .btn{background:var(--brand);color:#fff;border:none;padding:11px 20px;border-radius:8px;
+       font-size:14px;font-weight:700;cursor:pointer;transition:.15s;box-shadow:0 3px 8px rgba(30,58,95,0.18);}
+  .btn:hover{background:#264272;transform:translateY(-1px);box-shadow:0 5px 12px rgba(30,58,95,0.22);}
+  .btn:active{transform:translateY(0);}
+  .btn.ghost{background:#1e3a5f;color:#fff;border:2px solid #1e3a5f;}
+  .btn.ghost:hover{background:#152a46;border-color:#152a46;}
+  .btn.share{background:#2e7d4f;color:#fff;border:2px solid #2e7d4f;}
+  .btn.share:hover{background:#245f3d;border-color:#245f3d;}
+  .btn-bar{margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;bottom:0;
+           background:rgba(255,255,255,0.96);padding:12px 0;border-top:1px solid var(--line);backdrop-filter:blur(4px);}
   .meta{font-size:12px;color:var(--muted);margin:6px 0 0;}
   .meta b{color:var(--ink);}
 
@@ -160,11 +164,12 @@
   .modal-mask{position:fixed;inset:0;background:rgba(20,30,45,.45);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px;}
   .modal-mask.hidden{display:none;} /* 确保 hidden 优先级高于 modal-mask 自身的 display:flex */
   .modal{background:#fff;border-radius:12px;width:580px;max-width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(20,40,70,.25);}
-  .modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line);}
+  #shareModal .modal,#mapModal .modal{background:#ffffff !important;border:1px solid #d8dde6;box-shadow:0 20px 60px rgba(15,23,42,.45);border-radius:14px;width:580px;max-width:100%;max-height:90vh;position:relative;inset:auto;}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line);background:#fff !important;}
   .modal-head h3{margin:0;font-size:16px;color:var(--brand);}
   .modal-x{background:none;border:none;font-size:24px;line-height:1;color:var(--muted);cursor:pointer;padding:0 4px;}
   .modal-x:hover{color:var(--ink);}
-  .modal-body{padding:4px 20px;overflow:auto;}
+  .modal-body{padding:4px 20px;overflow:auto;background:#fff !important;}
   .opt-group{padding:13px 0;border-bottom:1px solid #f0f3f8;}
   .opt-group:last-child{border-bottom:none;}
   .opt-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:9px;}
@@ -173,7 +178,13 @@
   .opt-checks label{display:flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer;color:#33405a;}
   .opt-checks input{width:15px;height:15px;accent-color:var(--brand);}
   .opt-checks .all-link{color:var(--brand);font-size:12px;cursor:pointer;text-decoration:underline;}
-  .modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--line);}
+  .modal-foot{display:flex;justify-content:flex-end;gap:12px;padding:18px 20px;border-top:1px solid var(--line);background:#fff;}
+  .modal-foot .btn{padding:12px 24px;font-size:15px;font-weight:700;min-width:120px;box-shadow:0 4px 10px rgba(30,58,95,0.22);}
+  .modal-foot #shareModalOk{background:#d97706;color:#fff;border:2px solid #d97706;box-shadow:0 4px 12px rgba(217,119,6,0.35);}
+  .modal-foot #shareModalOk:hover{background:#b45309;border-color:#b45309;}
+  .modal-foot #shareModalCancel{background:#fff;color:#1e3a5f;border:2px solid #1e3a5f;}
+  .modal-foot #shareModalCancel:hover{background:#eef2f8;}
+  .modal-box{background:#fff !important;}
   .opt-done{margin-top:14px;padding:14px 16px;background:#eef6f0;border:1px solid #bfe0cc;border-radius:9px;}
   .done-row{font-size:14px;color:#245f3d;margin-bottom:6px;}
   .done-ico{margin-right:6px;}
@@ -190,6 +201,12 @@
   .share-remote .btn.share{width:100%;}
   .remote-tip{font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.5;}
   .remote-tip code{background:#e3e8f0;padding:1px 5px;border-radius:4px;font-size:11.5px;}
+  .ind-panel{margin:14px 0;background:#fbfdff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
+  .ind-panel .ind-h{font-size:13px;font-weight:600;color:var(--brand);margin-bottom:8px;}
+  .ind-panel table{width:100%;border-collapse:collapse;font-size:13px;}
+  .ind-panel th,.ind-panel td{border:1px solid var(--line);padding:6px 10px;text-align:left;}
+  .ind-panel th{background:#eef3fb;color:#33405a;}
+  .ind-panel td.num{text-align:right;font-variant-numeric:tabular-nums;}
   .hb-card{background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0;}
   .hb-card h3{margin:0 0 10px;font-size:14px;color:var(--brand);}
   .hb-tbl{width:100%;border-collapse:collapse;font-size:13px;}
@@ -200,6 +217,38 @@
   .hb-down{color:#d6336c;font-weight:600;}
   .hb-na{color:#9aa3b2;}
   .hb-prev{font-size:11px;color:#9aa3b2;margin-left:4px;}
+  .ind-ops{margin-top:8px;}
+  .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:9999;overflow:auto;}
+  .modal.hidden{display:none;}
+  .modal-box{background:#fff;border-radius:12px;width:min(760px,100%);box-shadow:0 18px 50px rgba(2,8,23,.35);padding:18px 20px;}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px;}
+  .modal-head h3{margin:0;font-size:15px;color:var(--brand);}
+  .modal-tip{font-size:12.5px;color:#5b6573;margin:4px 0 12px;line-height:1.5;}
+  .map-list{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:8px;}
+  .map-row{display:flex;align-items:center;gap:12px;padding:8px 12px;border-bottom:1px solid #eef1f6;}
+  .map-row:last-child{border-bottom:none;}
+  .map-raw{flex:1 1 auto;min-width:0;}
+  .map-raw b{font-size:13px;color:#1f2937;word-break:break-all;}
+  .map-raw .meta{font-size:11.5px;color:#9aa3b2;margin-left:6px;}
+  .map-sel{flex:0 0 230px;}
+  .map-sel select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;color:#374151;}
+  .map-add{display:flex;gap:10px;align-items:center;margin:14px 0 8px;flex-wrap:wrap;}
+  .map-add input{padding:7px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;flex:1 1 280px;min-width:200px;}
+  .map-add select{padding:7px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;}
+  .modal-foot{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid #eef1f6;padding-top:12px;margin-top:6px;}
+  .map-msg{font-size:12.5px;color:#2b8a3e;margin-left:auto;}
+  .empty{color:#9aa3b2;font-size:13px;padding:14px;text-align:center;}
+  .muted{color:#9aa3b2;font-size:12.5px;}
+  .raw-list{max-height:52vh;overflow:auto;border:1px solid var(--line);border-radius:8px;}
+  .raw-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .raw-table th{background:#f7f9fc;padding:8px 10px;text-align:left;font-weight:600;color:#4b5563;border-bottom:1px solid var(--line);white-space:nowrap;}
+  .raw-table td{padding:8px 10px;border-bottom:1px solid #eef1f6;vertical-align:middle;}
+  .raw-table tr:last-child td{border-bottom:none;}
+  .raw-table tr:hover td{background:#f8fafd;}
+  .raw-table td:first-child{word-break:break-all;max-width:320px;}
+  .raw-table select{padding:5px 8px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;color:#374151;}
+  .raw-table tr.unclassified-row td{background:#fffbf0;}
+  .raw-table select.unclassified{color:#6b7280;}
 </style>
 </head>
 <body>
@@ -271,6 +320,11 @@
       </div>
 
       <div class="ctl">
+        <label>适应症（细分）</label>
+        <div class="comp-ops"><a id="indAll">全选</a> · <a id="indNone">清空</a></div>
+        <div class="comp-list" id="indFilter"></div>
+      </div>
+      <div class="ctl">
         <label>显示行数 Top N</label>
         <input type="number" id="topN" value="30" min="5" max="200" step="5">
       </div>
@@ -310,7 +364,7 @@
       <div class="comp-list" id="compList"></div>
     </div>
 
-    <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <div class="btn-bar">
       <button class="btn" id="recalc">重新计算</button>
       <button class="btn ghost" id="exportBtn">⬇ 一键导出全部 (Excel)</button>
       <button class="btn share" id="shareBtn">🔒 导出分享版 (可选内容)</button>
@@ -322,6 +376,42 @@
   <div class="card hidden" id="resCard">
     <h2>④ 分析结果</h2>
     <div id="hbCard" class="hb-card"></div>
+      <div id="indPanel" class="ind-panel"></div>
+      <div class="ind-ops"><button class="btn ghost" id="indMapBtn">✎ 修正映射规则</button></div>
+      <div id="mapModal" class="modal hidden">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h3>适应症映射规则修正 · 当前范围：<span id="mapScope"></span></h3>
+            <button class="btn ghost" id="mapClose">✕ 关闭</button>
+          </div>
+          <p class="modal-tip">逐条「原始适应症」改归到正确的细分疾病，改完立即全局重算。修改仅存本地浏览器（localStorage），可一键导出 JSON 替换 <code>indication_map.json</code> 后重新构建。</p>
+          <div id="mapList" class="map-list"></div>
+          <div class="map-add">
+            <input id="mapNewRaw" placeholder="新增规则：原始适应症文本（如 特应性皮炎硬皮病）" />
+            <select id="mapNewTarget"></select>
+            <button class="btn" id="mapAdd">＋ 新增规则</button>
+          </div>
+          <div class="modal-foot">
+            <button class="btn ghost" id="mapReset">↺ 重置为默认映射</button>
+            <button class="btn ghost" id="mapExport">⬇ 导出映射 JSON</button>
+            <span id="mapMsg" class="map-msg"></span>
+          </div>
+        </div>
+      </div>
+      <div id="rawIndModal" class="modal hidden">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h3>「<span id="rawIndTitle"></span>」原始适应症构成</h3>
+            <button class="btn ghost" id="rawIndClose">✕ 关闭</button>
+          </div>
+          <p class="modal-tip">列出当前口径下被归到该细分疾病的所有原始适应症文本。可逐条修改映射目标，改完即时重算；也可点「下钻看板」只看该适应症明细。</p>
+          <div id="rawIndList" class="raw-list"></div>
+          <div class="modal-foot">
+            <button class="btn" id="rawIndDrill">🔍 下钻看板</button>
+            <span id="rawIndMsg" class="map-msg"></span>
+          </div>
+        </div>
+      </div>
     <div class="tables">
       <div class="tbl-card">
         <div class="tbl-head">
@@ -573,6 +663,7 @@ const STATE = {
   prodMask: 'off',
   timePreset: '12',
   hbMonth: null,
+  indFilter: null,
   customStart: null,
   customEnd: null,
   chartTab: 'share',
@@ -643,6 +734,19 @@ function categorize(raw){
   const cl = s.replace(/[\s，。、；：""''（）()\[\]]+/g,'');
   if(window.IND_MAP[cl]) return [window.IND_MAP[cl][0], '前列腺癌'];
   return [s, '前列腺癌'];
+}
+/* 适应症映射修正：默认快照 + 本地覆盖（界面改规则后记忆在浏览器，重算全局生效） */
+const IND_MAP_DEFAULT = JSON.parse(JSON.stringify(window.IND_MAP));
+(function applyIndOverrides(){
+  try{
+    const ov = JSON.parse(localStorage.getItem('IND_MAP_OVERRIDES')||'null');
+    if(ov && typeof ov==='object'){ for(const k in ov){ if(Array.isArray(ov[k])) window.IND_MAP[k]=ov[k]; } }
+  }catch(e){}
+})();
+function normIndCatMap(){
+  const m={};
+  for(const k in window.IND_MAP){ const v=window.IND_MAP[k]; if(Array.isArray(v)&&v[1]) m[v[0]]=v[1]; }
+  return m;
 }
 /* 适应症无法归类时, 用原始科室关键词兜底定大类 */
 function categorizeByDept(rawDept){
@@ -856,7 +960,7 @@ function loadRows(rows){
       if(!prod) continue;
       const indRaw = (r[COL.ind]!=null)?String(r[COL.ind]).trim():'';
       let [normInd, cat] = categorize(indRaw);
-      if(!cat || cat==='未分类'){ cat = categorizeByDept(r[COL.dept]); }   // 适应症空/未分类 -> 科室兜底
+      if(!cat || cat==='未分类'){ cat = categorizeByDept(r[COL.dept]); normInd = '（未细分）'; }   // 适应症空/未分类 -> 科室兜底
       const convQty = parseFloat(r[COL.convQty]);
       const oneid = (r[COL.oneid]!=null)?String(r[COL.oneid]).trim():'';
       const invoice = (r[COL.invoice]!=null)?String(r[COL.invoice]).trim():'';
@@ -871,7 +975,7 @@ function loadRows(rows){
       const sexRaw = (r[COL.sex]!=null)?String(r[COL.sex]).trim():'';
       if(convQty==null || isNaN(convQty)) continue;
       const amtRaw = COL.amt!=null ? parseFloat(r[COL.amt]) : NaN;
-      RAW.push({d, prod, cat, convQty, oneid, invoice, hosp, dept, doctor, city, age:ageRaw, sex:sexRaw, amt: isNaN(amtRaw)?0:amtRaw});
+      RAW.push({d, prod, cat, convQty, oneid, invoice, hosp, dept, doctor, ind: normInd, rawInd: indRaw, city, age:ageRaw, sex:sexRaw, amt: isNaN(amtRaw)?0:amtRaw});
       seenProd.add(prod);
       if(dmin==null||d<dmin) dmin=d;
       if(dmax==null||d>dmax) dmax=d;
@@ -900,6 +1004,7 @@ function buildControls(){
   const defFocus = PRODUCTS.find(p=>p.includes('乌帕替尼')) || PRODUCTS[0];
   STATE.focus = defFocus;
   buildCompList(defFocus);
+  buildIndFilter();
 
   // 焦点品种下拉框（方案A：恢复焦点切换能力）
   const fs=document.getElementById('focusSel');
@@ -915,8 +1020,226 @@ function buildControls(){
   // 多维分析品种筛选
   buildChartProdFilter();
 }
+/* ============ 适应症（细分）筛选与分布面板 ============ */
+function defaultIndFilter(){
+  return STATE.cat==='皮科' ? new Set(['特应性皮炎','皮炎湿疹类']) : null;
+}
+function buildIndFilter(){
+  const box=document.getElementById('indFilter'); if(!box) return;
+  const catFilter = STATE.cat==='整体'? null : STATE.cat;
+  const set=new Set();
+  for(const r of RAW){ if(catFilter && r.cat!==catFilter) continue; if(r.ind) set.add(r.ind); }
+  const inds=[...set].sort();
+  const def = STATE.indFilter || defaultIndFilter();
+  box.innerHTML='';
+  inds.forEach(ind=>{
+    const lab=document.createElement('label');
+    const cb=document.createElement('input');
+    cb.type='checkbox'; cb.value=ind; cb.checked = def ? def.has(ind) : true;
+    cb.addEventListener('change', ()=>{
+      const sel=new Set();
+      box.querySelectorAll('input[type=checkbox]').forEach(c=>{ if(c.checked) sel.add(c.value); });
+      STATE.indFilter = (sel.size===inds.length) ? null : sel;
+      recalcAsync();
+    });
+    lab.appendChild(cb); lab.appendChild(document.createTextNode(ind));
+    box.appendChild(lab);
+  });
+  const allA=document.getElementById('indAll'), noneA=document.getElementById('indNone');
+  if(allA) allA.onclick=()=>{ box.querySelectorAll('input').forEach(c=>c.checked=true); STATE.indFilter=null; recalcAsync(); buildIndFilter(); };
+  if(noneA) noneA.onclick=()=>{ box.querySelectorAll('input').forEach(c=>c.checked=false); STATE.indFilter=new Set(); recalcAsync(); buildIndFilter(); };
+}
+function renderIndPanel(){
+  const el=document.getElementById('indPanel'); if(!el) return;
+  if(!RAW.length){ el.innerHTML=''; return; }
+  const catFilter = STATE.cat==='整体'? null : STATE.cat;
+  const {start,end}=getWindow();
+  const prods=new Set([STATE.focus, ...STATE.competitors]);
+  const cnt=new Map();
+  for(const r of RAW){
+    if(r.d<start||r.d>end) continue;
+    if(prods && !prods.has(r.prod)) continue;
+    if(catFilter && r.cat!==catFilter) continue;
+    let o=cnt.get(r.ind); if(!o){o={p:new Set(),q:0}; cnt.set(r.ind,o);}
+    o.p.add(r.oneid+'|'+r.invoice); o.q+=r.convQty;
+  }
+  const rows=[...cnt.entries()].map(([k,o])=>({ind:k,p:o.p.size,q:o.q}));
+  rows.sort((a,b)=>b.p-a.p);
+  const totP=rows.reduce((s,x)=>s+x.p,0)||1;
+  if(!rows.length){ el.innerHTML=''; return; }
+  const drilled = STATE.indFilter && STATE.indFilter.size>=1;
+  const clearLink = drilled ? ' · <a id="indClear" style="cursor:pointer;color:#2b6cb0">✕ 清除下钻</a>' : '';
+  let html='<div class="ind-h">适应症（细分）分布 · 当前口径（去重患者数 / 转化后数量）'+clearLink+'</div>'
+    +'<div class="ind-tip">点击某一行查看原始适应症构成（可改映射），或点「下钻看板」只看该适应症明细</div>'
+    +'<table><thead><tr><th>适应症（细分）</th><th class="num">患者数</th><th class="num">占比</th><th class="num">销量(转化后数量)</th></tr></thead><tbody>';
+  rows.forEach(x=>{
+    const dim = (STATE.indFilter && !STATE.indFilter.has(x.ind)) ? ' style="opacity:.4"' : '';
+    const act = (STATE.indFilter && STATE.indFilter.size===1 && STATE.indFilter.has(x.ind)) ? ' class="ind-row active"' : ' class="ind-row"';
+    html+='<tr'+act+' data-ind="'+esc(x.ind)+'"'+dim+'><td>'+esc(x.ind)+'</td><td class="num">'+x.p.toLocaleString()+'</td><td class="num">'+(x.p/totP*100).toFixed(1)+'%</td><td class="num">'+x.q.toLocaleString()+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  el.innerHTML=html;
+}
+
 
 // 同类品种列表：除焦点外全部品种，默认全选
+function distinctNormInd(){
+  const s=new Set();
+  for(const k in window.IND_MAP){ const v=window.IND_MAP[k]; if(Array.isArray(v)&&v[0]) s.add(v[0]); }
+  return [...s].sort();
+}
+function mapTargetsOptions(selected){
+  const opts=distinctNormInd();
+  let html='';
+  // 若当前值不在标准列表里（如「（未细分）」），把它放在第一位并默认选中，避免浏览器误选第一项
+  if(selected && selected!=='' && !opts.includes(selected)){
+    html+='<option value="'+esc(selected)+'" selected>'+esc(selected)+'</option>';
+  }
+  opts.forEach(o=>{ html+='<option value="'+esc(o)+'"'+(o===selected?' selected':'')+'>'+esc(o)+'</option>'; });
+  return html;
+}
+function recomputeIndFor(raw){
+  for(const r of RAW){
+    if(r.rawInd!==raw) continue;
+    const [ni,c]=categorize(r.rawInd);
+    let cat=c, normInd=ni;
+    if(!cat||cat==='未分类'){ cat=categorizeByDept(r.dept); normInd='（未细分）'; }
+    r.cat=cat; r.ind=normInd;
+  }
+}
+function saveIndOverride(raw, val){
+  let ov={};
+  try{ ov=JSON.parse(localStorage.getItem('IND_MAP_OVERRIDES')||'{}')||{}; }catch(e){ ov={}; }
+  ov[raw]=val; localStorage.setItem('IND_MAP_OVERRIDES', JSON.stringify(ov));
+}
+function buildMapModal(){
+  const scope = STATE.cat==='整体'? null : STATE.cat;
+  const scopeEl=document.getElementById('mapScope'); if(scopeEl) scopeEl.textContent = scope||'全适应症（整体）';
+  const map=new Map();
+  for(const r of RAW){
+    if(scope && r.cat!==scope) continue;
+    const raw = (r.rawInd!=null && r.rawInd!=='')? r.rawInd : '（空适应症）';
+    let o=map.get(raw); if(!o){ o={count:0, curInd:r.ind}; map.set(raw,o); }
+    o.count++;
+  }
+  const ncs=normIndCatMap();
+  const rows=[...map.entries()].sort((a,b)=>b[1].count-a[1].count);
+  let html='';
+  rows.forEach(([raw,o])=>{
+    html+='<div class="map-row" data-raw="'+esc(raw)+'">'
+      +'<div class="map-raw"><b>'+esc(raw)+'</b> <span class="meta">'+o.count.toLocaleString()+' 行</span></div>'
+      +'<div class="map-sel"><select data-raw="'+esc(raw)+'">'+mapTargetsOptions(o.curInd)+'</select></div></div>';
+  });
+  if(!rows.length) html='<div class="empty">当前范围暂无数据</div>';
+  document.getElementById('mapList').innerHTML=html;
+  document.querySelectorAll('#mapList select').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      const raw=sel.getAttribute('data-raw'); const target=sel.value;
+      const cat = ncs[target] || (scope||'其他');
+      window.IND_MAP[raw]=[target, cat];
+      saveIndOverride(raw, [target, cat]);
+      recomputeIndFor(raw); recalcAsync();
+      const msg=document.getElementById('mapMsg'); if(msg) msg.textContent='已更新：'+raw+' → '+target;
+    });
+  });
+  const nt=document.getElementById('mapNewTarget'); if(nt) nt.innerHTML=mapTargetsOptions('');
+  const msg=document.getElementById('mapMsg'); if(msg) msg.textContent='';
+}
+function openMapModal(){ buildMapModal(); document.getElementById('mapModal').classList.remove('hidden'); }
+function closeMapModal(){ document.getElementById('mapModal').classList.add('hidden'); }
+
+/* 分布面板下钻：点击行 → 打开原始适应症构成弹窗；清除下钻 */
+document.getElementById('indPanel').addEventListener('click', e=>{
+  if(e.target && e.target.id==='indClear'){ STATE.indFilter=null; buildIndFilter(); recalcAsync(); return; }
+  const tr=e.target.closest('tr.ind-row'); if(!tr) return;
+  const ind=tr.getAttribute('data-ind'); if(!ind) return;
+  openRawIndModal(ind);
+});
+/* 原始适应症构成弹窗 */
+function buildRawIndModal(ind){
+  const titleEl=document.getElementById('rawIndTitle'); if(titleEl) titleEl.textContent=ind;
+  document.getElementById('rawIndModal').setAttribute('data-ind', ind);
+  const catFilter = STATE.cat==='整体'? null : STATE.cat;
+  const {start,end}=getWindow();
+  const prods=new Set([STATE.focus, ...STATE.competitors]);
+  const map=new Map();
+  for(const r of RAW){
+    if(r.d<start||r.d>end) continue;
+    if(prods && !prods.has(r.prod)) continue;
+    if(catFilter && r.cat!==catFilter) continue;
+    if(r.ind!==ind) continue;
+    const raw=(r.rawInd!=null && r.rawInd!=='')? r.rawInd : '（空适应症）';
+    let o=map.get(raw); if(!o){ o={p:new Set(),q:0,curInd:r.ind}; map.set(raw,o); }
+    o.p.add(r.oneid+'|'+r.invoice); o.q+=r.convQty;
+  }
+  const rows=[...map.entries()].sort((a,b)=>b[1].p.size-a[1].p.size);
+  const ncs=normIndCatMap();
+  const listEl=document.getElementById('rawIndList'); if(!listEl) return;
+  if(!rows.length){ listEl.innerHTML='<div class="empty">当前范围暂无数据</div>'; return; }
+  let html='<table class="raw-table"><thead><tr><th>原始适应症</th><th class="num">患者数</th><th class="num">销量</th><th>当前映射为</th><th>改为</th></tr></thead><tbody>';
+  rows.forEach(([raw,o])=>{
+    const isUnclassified = o.curInd === '（未细分）';
+    const selectHtml = isUnclassified
+      ? '<select data-raw="'+esc(raw)+'" class="unclassified"><option value="" disabled selected>请选择映射目标...</option>'+mapTargetsOptions('')+'</select>'
+      : '<select data-raw="'+esc(raw)+'">'+mapTargetsOptions(o.curInd)+'</select>';
+    html+='<tr data-raw="'+esc(raw)+'"'+(isUnclassified?' class="unclassified-row"':'')+'><td>'+esc(raw)+'</td>'
+      +'<td class="num">'+o.p.size.toLocaleString()+'</td>'
+      +'<td class="num">'+o.q.toLocaleString()+'</td>'
+      +'<td class="cur-ind">'+esc(o.curInd)+'</td>'
+      +'<td>'+selectHtml+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  listEl.innerHTML=html;
+  document.querySelectorAll('#rawIndList select').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      const raw=sel.getAttribute('data-raw'); const target=sel.value;
+      if(!target){ const msg=document.getElementById('rawIndMsg'); if(msg) msg.textContent='请选择一个映射目标'; return; }
+      const cat=ncs[target] || (catFilter||'其他');
+      window.IND_MAP[raw]=[target, cat];
+      saveIndOverride(raw, [target, cat]);
+      recomputeIndFor(raw); recalcAsync();
+      const tr=sel.closest('tr'); if(tr){ tr.classList.remove('unclassified-row'); const td=tr.querySelector('.cur-ind'); if(td) td.textContent=target; }
+      const msg=document.getElementById('rawIndMsg'); if(msg) msg.textContent='已更新：'+raw+' → '+target;
+    });
+  });
+  const msg=document.getElementById('rawIndMsg'); if(msg) msg.textContent='';
+}
+function openRawIndModal(ind){ buildRawIndModal(ind); document.getElementById('rawIndModal').classList.remove('hidden'); }
+function closeRawIndModal(){ document.getElementById('rawIndModal').classList.add('hidden'); }
+/* 映射规则修正弹窗交互 */
+document.getElementById('indMapBtn').addEventListener('click', openMapModal);
+document.getElementById('mapClose').addEventListener('click', closeMapModal);
+document.getElementById('mapModal').addEventListener('click', e=>{ if(e.target.id==='mapModal') closeMapModal(); });
+document.getElementById('rawIndClose').addEventListener('click', closeRawIndModal);
+document.getElementById('rawIndModal').addEventListener('click', e=>{ if(e.target.id==='rawIndModal') closeRawIndModal(); });
+document.getElementById('rawIndDrill').addEventListener('click', ()=>{
+  const ind=document.getElementById('rawIndModal').getAttribute('data-ind'); if(!ind) return;
+  STATE.indFilter=new Set([ind]); buildIndFilter(); recalcAsync(); closeRawIndModal();
+});
+document.getElementById('mapAdd').addEventListener('click', ()=>{
+  const raw=document.getElementById('mapNewRaw').value.trim();
+  const target=document.getElementById('mapNewTarget').value;
+  if(!raw){ document.getElementById('mapMsg').textContent='请填写原始适应症文本'; return; }
+  const ncs=normIndCatMap();
+  const cat=ncs[target]||(STATE.cat==='整体'?'其他':STATE.cat);
+  window.IND_MAP[raw]=[target,cat]; saveIndOverride(raw,[target,cat]);
+  recomputeIndFor(raw); recalcAsync(); buildMapModal();
+  document.getElementById('mapMsg').textContent='已新增规则：'+raw+' → '+target;
+});
+document.getElementById('mapExport').addEventListener('click', ()=>{
+  const data=JSON.stringify(window.IND_MAP,null,2);
+  const blob=new Blob([data],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='indication_map_updated.json'; a.click();
+  document.getElementById('mapMsg').textContent='已导出 indication_map_updated.json（可替换 indication_map.json 后重新构建）';
+});
+document.getElementById('mapReset').addEventListener('click', ()=>{
+  for(const k in window.IND_MAP) delete window.IND_MAP[k];
+  Object.assign(window.IND_MAP, JSON.parse(JSON.stringify(IND_MAP_DEFAULT)));
+  localStorage.removeItem('IND_MAP_OVERRIDES');
+  for(const r of RAW){ const [ni,c]=categorize(r.rawInd); let cat=c,normInd=ni; if(!cat||cat==='未分类'){cat=categorizeByDept(r.dept);normInd='（未细分）';} r.cat=cat; r.ind=normInd; }
+  buildIndFilter(); recalcAsync(); closeMapModal();
+  document.getElementById('mapMsg').textContent='已重置为默认映射';
+});
 function buildCompList(focus){
   STATE.competitors = new Set();
   const cl = document.getElementById('compList');
@@ -1153,6 +1476,7 @@ function filterRows(prodSet, catFilter){
     if(r.d<start || r.d>end) continue;
     if(prodSet && !prodSet.has(r.prod)) continue;
     if(catFilter && r.cat!==catFilter) continue;
+    if(STATE.indFilter && !STATE.indFilter.has(r.ind)) continue;
     res.push(r);
   }
   return res;
@@ -1296,7 +1620,7 @@ function renderHB(){
   const M=STATE.hbMonth, prevYm=hbPrevYm(M);
   const catFilter = STATE.cat==='整体'? null : STATE.cat;
   const byProd=new Map();
-  for(const r of RAW){ if(catFilter && r.cat!==catFilter) continue;
+  for(const r of RAW){ if(catFilter && r.cat!==catFilter) continue; if(STATE.indFilter && !STATE.indFilter.has(r.ind)) continue;
     const ym=r.d.getFullYear()+'-'+String(r.d.getMonth()+1).padStart(2,'0');
     let m=byProd.get(r.prod); if(!m){m=new Map();byProd.set(r.prod,m);}
     let o=m.get(ym); if(!o){o={p:new Set(),q:0,a:0};m.set(ym,o);}
@@ -1333,6 +1657,7 @@ function recalc(){
   STATE.timePreset = document.getElementById('timePreset').value;
 
   const catFilter = STATE.cat==='整体'? null : STATE.cat;
+  renderIndPanel();
   const {start,end}=getWindow();
 
   // 左表：焦点品种
@@ -1478,6 +1803,7 @@ function rowsInScope(prodSet, catFilter){
     if(r.d < start || r.d > end) continue;
     if(prodSet && !prodSet.has(r.prod)) continue;
     if(catFilter && r.cat !== catFilter) continue;
+    if(STATE.indFilter && !STATE.indFilter.has(r.ind)) continue;
     res.push(r);
   }
   return res;
@@ -1732,6 +2058,7 @@ function buildHospSelect(){
     for(const r of RAW){
       if(r.d < w.start || r.d > w.end) continue;
       if(catFilter && r.cat !== catFilter) continue;
+      if(STATE.indFilter && !STATE.indFilter.has(r.ind)) continue;
       let s = cnt.get(r.hosp);
       if(!s){ s = new Set(); cnt.set(r.hosp, s); }
       s.add(r.oneid + '|' + r.invoice);
@@ -1761,6 +2088,7 @@ function drawHospChart(){
   for(const r of RAW){
     if(r.d < w.start || r.d > w.end) continue;
     if(catFilter && r.cat !== catFilter) continue;
+    if(STATE.indFilter && !STATE.indFilter.has(r.ind)) continue;
     if(r.hosp !== hosp) continue;
     let s = patMap.get(r.prod);
     if(!s){ s = new Set(); patMap.set(r.prod, s); }
@@ -3064,6 +3392,7 @@ document.querySelectorAll('#catTabs .tab').forEach(t=>{
     document.querySelectorAll('#catTabs .tab').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
     STATE.cat=t.dataset.cat;
+    STATE.indFilter=null; buildIndFilter();
     const c=document.getElementById('chartCatSel'); if(c) c.value=STATE.cat;
     recalcAsync();
   });
@@ -3118,6 +3447,7 @@ function fillChartCatSel(){
     _chartCatSelBound=true;
     sel.addEventListener('change', ()=>{
       STATE.cat=sel.value;
+      STATE.indFilter=null; buildIndFilter();
       document.querySelectorAll('#catTabs .tab').forEach(x=>x.classList.toggle('active', x.dataset.cat===STATE.cat));
       recalcAsync();
     });
