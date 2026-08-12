@@ -196,9 +196,10 @@
   .hb-tbl th,.hb-tbl td{border:1px solid var(--line);padding:7px 10px;text-align:left;}
   .hb-tbl th{background:#eef3fb;color:#33405a;font-weight:600;}
   .hb-tbl td.num,.hb-tbl th.num{text-align:right;font-variant-numeric:tabular-nums;}
-  .hb-up{color:#d6336c;font-weight:600;}
-  .hb-down{color:#2b8a3e;font-weight:600;}
+  .hb-up{color:#2b8a3e;font-weight:600;}
+  .hb-down{color:#d6336c;font-weight:600;}
   .hb-na{color:#9aa3b2;}
+  .hb-prev{font-size:11px;color:#9aa3b2;margin-left:4px;}
 </style>
 </head>
 <body>
@@ -1307,10 +1308,10 @@ function renderHB(){
   const cC=agg([...STATE.competitors],M), cP=agg([...STATE.competitors],prevYm);
   const pct=(cur,prev)=>{ if(!prev){ return '<span class="hb-na">—</span>'; }
     const v=(cur-prev)/prev*100; const cls=v>=0?'hb-up':'hb-down'; const arr=v>=0?'▲':'▼';
-    return '<span class="'+cls+'">'+arr+Math.abs(v).toFixed(1)+'%</span>'; };
+    return '<span class="'+cls+'">'+arr+Math.abs(v).toFixed(1)+'%</span><span class="hb-prev">上月 '+num(prev)+'</span>'; };
   const money=n=> '¥'+Math.round(n).toLocaleString();
   const num=n=> Math.round(n).toLocaleString();
-  const rows=[['去重患者数',fC.p,fP.p,cC.p,cP.p,false],['转化后数量',fC.q,fP.q,cC.q,cP.q,false],['含税金额',fC.a,fP.a,cC.a,cP.a,true]];
+  const rows=[['去重患者数',fC.p,fP.p,cC.p,cP.p,false],['转化后数量',fC.q,fP.q,cC.q,cP.q,false]];
   let body='';
   rows.forEach(r=>{ const d=r[5]?money:num;
     body+='<tr><td>'+r[0]+'</td>'+
@@ -1541,7 +1542,7 @@ function renderShare(){
   items.forEach(it=>{
     const cls = it.isFocus? 'class="c-focus"':'';
     const pp = hbPrevPat.get(it.prod)? hbPrevPat.get(it.prod).size : 0;
-    let hb='<span class="hb-na">—</span>'; if(pp){ const v=(it.patients-pp)/pp*100; const c=v>=0?'hb-up':'hb-down'; hb='<span class="'+c+'">'+(v>=0?'▲':'▼')+Math.abs(v).toFixed(1)+'%</span>'; }
+    let hb='<span class="hb-na">—</span>'; if(pp){ const v=(it.patients-pp)/pp*100; const c=v>=0?'hb-up':'hb-down'; hb='<span class="'+c+'">'+(v>=0?'▲':'▼')+Math.abs(v).toFixed(1)+'%</span><span class="hb-prev">上月 '+pp.toLocaleString()+'</span>'; }
     html += `<tr><td ${cls}>${esc(prodLabel(it.prod))}${it.isFocus?' ★':''}</td>`+
             `<td class="num">${it.patients.toLocaleString()}</td>`+
             `<td class="num">${(it.patients/tot*100).toFixed(1)}%</td>`+
@@ -2510,9 +2511,10 @@ function renderShareDoc(share){
   .city-grp{margin:2px 0 7px;}
   tr.c-focus td{background:#eef3fb;font-weight:600;}
   tr.c-focus td:first-child{border-left:3px solid var(--brand);}
-  .hb-up{color:#d6336c;font-weight:600;}
-  .hb-down{color:#2b8a3e;font-weight:600;}
+  .hb-up{color:#2b8a3e;font-weight:600;}
+  .hb-down{color:#d6336c;font-weight:600;}
   .hb-na{color:#9aa3b2;}
+  .hb-prev{font-size:11px;color:#9aa3b2;margin-left:4px;}
 </style></head>
 <body><div class="wrap">
   <div class="lock-banner">🔒 本页为交互分享版 · 数据已脱敏汇总 · 不含原始底表 · 可切换适应症与品种，但无法更改脱敏方式或查看患者级原始记录</div>
@@ -2623,7 +2625,7 @@ const SHARE = ${json};
       if(trendByProd && trendByProd.months && trendByProd.months.length>=2){
         const pIdx=trendByProd.months.length-2;
         const prev=(trendByProd.byProd[it.prod]&&trendByProd.byProd[it.prod].P[pIdx])||0;
-        if(prev>0){ const v=(it.patients-prev)/prev*100; const c=v>=0?'hb-up':'hb-down'; hb='<span class="'+c+'">'+(v>=0?'▲':'▼')+Math.abs(v).toFixed(1)+'%</span>'; }
+        if(prev>0){ const v=(it.patients-prev)/prev*100; const c=v>=0?'hb-up':'hb-down'; hb='<span class="'+c+'">'+(v>=0?'▲':'▼')+Math.abs(v).toFixed(1)+'%</span><span class="hb-prev">上月 '+num(prev)+'</span>'; }
       }
       return '<tr class="'+(isF?'c-focus':'')+'"><td>'+esc(prodLabel(it.prod))+(isF?' ★':'')+'</td><td class="num">'+num(it.patients)+'</td><td class="num">'+(it.patients/tot*100).toFixed(1)+'%</td><td class="num">'+num(it.qty)+'</td><td class="num">'+hb+'</td></tr>';
     }).join('');
