@@ -3350,7 +3350,7 @@ function renderShareDoc(share){
     <div class="ctl"><label>焦点品种</label><select id="focusSel"></select></div>
     ${sec.doctor||sec.hospital?`<div class="ctl"><label>视图</label><select id="modeSel">${sec.doctor?'<option value="doctor">医生明细</option>':''}${sec.hospital?'<option value="hospital">医院汇总</option>':''}</select></div>`:''}
     <div class="ctl"><label>排序</label><select id="sortSel"><option value="patients">患者数</option><option value="dot">DOT</option></select></div>
-    <div class="ctl"><label>显示行数 Top N</label><select id="topNSel">${[5,10,20,30,50,100].map(n=>'<option value="'+n+'"'+(SHARE.meta.topN===n?' selected':'')+'>'+n+'</option>').join('')}</select></div>
+    <div class="ctl"><label>显示行数 Top N</label><select id="topNSel">${[5,10,20,30,50,100].map(n=>'<option value="'+n+'"'+(share.meta.topN===n?' selected':'')+'>'+n+'</option>').join('')}</select></div>
   </div>
   <div id="hbCard" class="hb-card"></div>
   ${sec.doctor||sec.hospital?`
