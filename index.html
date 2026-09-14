@@ -2523,7 +2523,7 @@ function drawHospChart(){
   }
   // 图表统一为单月口径（hbM 底表最新月），与明细表一致
   const curMonKeys = new Set([...currPat.keys(), ...prevPat.keys()]);
-  const items = [...curMonKeys].map(prod=>({
+  let items = [...curMonKeys].map(prod=>({
     prod, patients: (currPat.get(prod)||new Set()).size, qty: currQty.get(prod)||0, isFocus: prod===STATE.focus
   })).filter(x=>x.patients>0 || x.qty>0);
   // 品种筛选
@@ -3681,10 +3681,13 @@ const SHARE = ${json};
     let items=catData._charts.hospShare[st.lockHosp]||[];
     const fp = getMviewProds();
     if(fp) items = items.filter(it => fp.has(it.prod));
-    const tot=items.reduce((a,b)=>a+b.patients,0)||1;
-    const max=Math.max(...items.map(x=>x.patients),0)||1;
     // 环比口径：最新月 vs 上月（与主工具一致），来自导出时预聚合的 hb.hospByProd
     const hbMap = (catData._charts.hb && catData._charts.hb.hospByProd && catData._charts.hb.hospByProd[st.lockHosp]) || {};
+    // 统一为"当月患者数"口径并降序；tot/max 同步按当月算
+    // 修复：原 tot/max 用全期分品种患者数做分母，而患者数显示单月(hb.curP)，导致占比之和≠100%
+    items = items.map(it=>Object.assign(it, {_curP: (hbMap[it.prod]) ? hbMap[it.prod].curP : it.patients})).sort((a,b)=>b._curP-a._curP);
+    const tot=items.reduce((a,b)=>a+b._curP,0)||1;
+    const max=Math.max(...items.map(x=>x._curP),0)||1;
     const hbMonths = (catData._charts.hb && catData._charts.hb.months) || [];
     const hbTxt = hbMonths.length>=2 ? ('环比口径 '+hbMonths[0]+' vs '+hbMonths[1]) : '';
     const hbHtml = (cur, prev)=>{
@@ -3694,7 +3697,7 @@ const SHARE = ${json};
     let rows=items.map(it=>{
       const isF=it.prod===st.focus;
       const hb = hbMap[it.prod];
-      const curP = hb ? hb.curP : it.patients;   // 单月口径
+      const curP = it._curP;   // 单月口径
       const curQ = hb ? hb.curQ : it.qty;
       const curShare = tot>0 ? (curP/tot*100) : 0;
       let shareHb='<span class="hb-na">—</span>', qtyHb='<span class="hb-na">—</span>';
@@ -3714,7 +3717,7 @@ const SHARE = ${json};
     let bars=items.map(it=>{
       const isF=it.prod===st.focus;
       const hb = hbMap[it.prod];
-      const curP = hb ? hb.curP : it.patients;
+      const curP = it._curP;
       const curQ = hb ? hb.curQ : it.qty;
       const w=(curP/max*100).toFixed(1);
       const color=isF?'linear-gradient(90deg,#3f6fb5,#5b8dd6)':'#c2cce0';
