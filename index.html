@@ -326,7 +326,7 @@
             <select id="focusSel"></select>
           </div>
           <div class="ctl">
-            <label>时间窗口（决定医生/医院明细「患者人数」列；其 DOT 列固定为回滚12月，分母独立）</label>
+            <label>时间窗口（决定明细表入选范围与其他图表；医生/医院明细「x月患者人数」列固定为基准月=底表最新月，DOT 固定为回滚12月）</label>
             <select id="timePreset">
               <option value="all">全部数据</option>
               <option value="3">近 3 个月</option>
@@ -1735,10 +1735,10 @@ function truncLabel(name){
   return s.length > 20 ? s.slice(0,20) + '…' : s;
 }
 
-/* 医生/医院明细的「环比」列：按 STATE.hbMonth（本月）vs 上一月 去重患者数
+/* 医生/医院明细的「环比」列与「x月患者人数」列：按 STATE.hbMonth（基准月=底表最新月）vs 上一月 去重患者数
    key 与 GVIEW[side][mode] 一致：医生=hosp+dept+doctor；医院=hosp
-   返回 { curSize, prevSize, curLabel, prevLabel }，供 renderTable 加列用
-   顶部窗口不覆盖「上月」时返回 null（环比列隐藏） */
+   返回 { curSize, prevSize, curLabel, prevLabel }，供 renderTable 使用
+   顶部窗口不含上月或不含基准月（自定义历史区间）时返回 null（明细表回退窗口口径，不换列名） */
 function computeMonthMap(side, mode){
   const M = getHbMonth();
   if(!M) return null;
@@ -1746,6 +1746,8 @@ function computeMonthMap(side, mode){
   const {start,end}=getWindow();
   const winStartYm = start.getFullYear()+'-'+String(start.getMonth()+1).padStart(2,'0');
   if(winStartYm > prevYm) return null;   // 窗口比上月起点还晚，无环比意义
+  const winEndYm = end.getFullYear()+'-'+String(end.getMonth()+1).padStart(2,'0');
+  if(winEndYm < M) return null;          // 窗口不含基准月，回退窗口口径
   const prodSet = side==='left' ? new Set([STATE.focus]) : STATE.competitors;
   const catFilter = STATE.cat==='整体'? null : STATE.cat;
   const keyOf = mode==='hospital' ? (r)=>r.hosp : (r)=>r.hosp+'§'+r.dept+'§'+r.doctor;
@@ -1771,15 +1773,39 @@ function computeMonthMap(side, mode){
   return { curSize, prevSize, curLabel: M, prevLabel: prevYm };
 }
 
+/* 明细表「x月患者人数」列辅助：
+   hbMonthLabel："2026-09" → "9月"（表头用）
+   hbDocVal：医生行（同名跨科室已合并）取月度值——汇总该医院同名医生所有科室键值
+   hbRowVal：明细行在基准月的去重患者数（医院=精确键；医生=跨科室汇总） */
+function hbMonthLabel(ym){
+  const m = parseInt(String(ym||'').split('-')[1], 10);
+  return m ? (m+'月') : '';
+}
+function hbDocVal(map, hosp, doctor){
+  if(!map) return 0;
+  let sum = 0;
+  map.forEach(function(v,k){
+    const i = k.indexOf('§'), j = k.lastIndexOf('§');
+    if(i>0 && j>i && k.substring(0,i)===hosp && k.substring(j+1)===doctor) sum += v;
+  });
+  return sum;
+}
+function hbRowVal(hbMap, mode, r){
+  if(!hbMap) return r.patients;
+  return mode==='hospital' ? (hbMap.curSize.get(r.hosp)||0) : hbDocVal(hbMap.curSize, r.hosp, r.doctor);
+}
+
 /* ============ 渲染 ============ */
 function renderTable(side, rows, title, sub, mode, hbMap){
   const thead = document.getElementById(side+'Head');
   const tbody = document.querySelector(`#${side}Table tbody`);
   tbody.innerHTML='';
   const hbHead = hbMap ? `<th class="num">患者人数环比<br><span class="hb-cap">${hbMap.prevLabel}→${hbMap.curLabel}</span></th>` : '';
+  // 有环比口径时，「患者人数」列=基准月去重患者数，表头带月份；否则回退窗口口径
+  const patHead = hbMap ? (hbMonthLabel(hbMap.curLabel)+'患者人数') : '患者人数';
   if(mode==='hospital'){
     thead.innerHTML = `<tr><th class="rank">#</th><th>医疗单位</th>`+
-      `<th class="num">患者人数</th><th class="num">DOT</th><th class="num">医生数</th>${hbHead}</tr>`;
+      `<th class="num">${patHead}</th><th class="num">DOT</th><th class="num">医生数</th>${hbHead}</tr>`;
     rows.forEach((r,idx)=>{
       const tr=document.createElement('tr');
       tr.className='clickable-row';
@@ -1788,24 +1814,24 @@ function renderTable(side, rows, title, sub, mode, hbMap){
       const prev = hbMap? (hbMap.prevSize.get(r.hosp)||0) : 0;
       tr.innerHTML = `<td class="rank">${idx+1}</td>`+
         `<td><span class="hosp-link">${esc(r.hospDisp)}</span></td>`+
-        `<td class="num">${r.patients.toLocaleString()}</td>`+
+        `<td class="num">${(hbMap?cur:r.patients).toLocaleString()}</td>`+
         `<td class="num">${r.dot.toFixed(2)}</td>`+
         `<td class="num">${r.docCount||0}</td>`+
         (hbMap? `<td class="num">${hbHtml(cur, prev)}</td>` : '');
-      tr.addEventListener('click', ()=> drillDownHospital(side, r.hosp, hbMap));
+      tr.addEventListener('click', ()=> drillDownHospital(side, r.hosp));
       tbody.appendChild(tr);
     });
   } else {
     thead.innerHTML = `<tr><th class="rank">#</th><th>医疗单位</th><th>处方科室</th><th>处方医生</th>`+
-      `<th class="num">患者人数</th><th class="num">DOT</th>${hbHead}</tr>`;
+      `<th class="num">${patHead}</th><th class="num">DOT</th>${hbHead}</tr>`;
     rows.forEach((r,idx)=>{
       const tr=document.createElement('tr');
       if(r._opp) tr.className='opp';
-      const cur = hbMap? (hbMap.curSize.get(r.hosp+'§'+r.dept+'§'+r.doctor)||0) : 0;
-      const prev = hbMap? (hbMap.prevSize.get(r.hosp+'§'+r.dept+'§'+r.doctor)||0) : 0;
+      const cur = hbMap? hbDocVal(hbMap.curSize, r.hosp, r.doctor) : 0;
+      const prev = hbMap? hbDocVal(hbMap.prevSize, r.hosp, r.doctor) : 0;
       tr.innerHTML = `<td class="rank">${idx+1}</td>`+
         `<td>${esc(r.hospDisp)}</td><td>${esc(r.dept)}</td><td>${esc(r.docDisp)}</td>`+
-        `<td class="num">${r.patients.toLocaleString()}</td>`+
+        `<td class="num">${(hbMap?cur:r.patients).toLocaleString()}</td>`+
         `<td class="num">${r.dot.toFixed(2)}</td>`+
         (hbMap? `<td class="num">${hbHtml(cur, prev)}</td>` : '');
       tbody.appendChild(tr);
@@ -1815,16 +1841,16 @@ function renderTable(side, rows, title, sub, mode, hbMap){
   document.getElementById(side+'Sub').textContent=sub;
 }
 
-function renderBars(id, rows){
+function renderBars(id, rows, hbMap, mode){
   const el=document.getElementById(id);
   if(!rows.length){ el.innerHTML=''; return; }
-  // 按医院聚合：汇总患者数，收集医生名（用 / 间隔），一眼看出 TOP 医院
+  // 按医院聚合：汇总患者数（有环比口径时=基准月去重患者数，与明细表「x月患者人数」一致），收集医生名（用 / 间隔），一眼看出 TOP 医院
   const byHosp = new Map();
   for(const r of rows){
     const h = r.hospDisp || '—';
     if(!byHosp.has(h)) byHosp.set(h, {hosp:h, patients:0, docs:new Set()});
     const g = byHosp.get(h);
-    g.patients += r.patients;
+    g.patients += hbRowVal(hbMap, mode, r);
     if(r.docDisp && r.docDisp!=='—') g.docs.add(r.docDisp);
   }
   const agg = [...byHosp.values()].sort((a,b)=> b.patients - a.patients).slice(0,10);
@@ -1948,8 +1974,10 @@ function recalc(){
   renderSide('right');
 
   const oppCount = rightAgg.slice(0,STATE.topN).filter(r=>r._opp).length;
+  const hbM0 = getHbMonth();
+  const patTxt = hbM0 ? ('明细患者数='+hbMonthLabel(hbM0)+'（基准月）') : ('患者数='+winTxt);
   document.getElementById('metaLine').innerHTML =
-    `当前口径：<b>${catTxt}</b> · 患者数=<b>${winTxt}</b> · DOT=<b>${dotTxt}</b> · 左表 <b>${leftWin.length.toLocaleString()}</b> 行 / 右表 <b>${rightWin.length.toLocaleString()}</b> 行 · 机会市场 <b>${oppCount}</b> 个`;
+    `当前口径：<b>${catTxt}</b> · <b>${patTxt}</b> · 窗口=<b>${winTxt}</b> · DOT=<b>${dotTxt}</b> · 左表 <b>${leftWin.length.toLocaleString()}</b> 行 / 右表 <b>${rightWin.length.toLocaleString()}</b> 行 · 机会市场 <b>${oppCount}</b> 个`;
 
   renderCharts();   // 同步刷新多维分析图表
   fillChartCatSel(); // 同步多维视角内的适应症下拉
@@ -1969,14 +1997,20 @@ function renderSide(side){
   let aggAll = GVIEW[side][mode];
   // 医生明细模式：同一医院内同名跨科室医生合并为一行（科室用 / 拼接）
   if(mode === 'doctor') aggAll = mergeDoctorsByHospital(aggAll);
-  const top = anonymize(aggAll.slice(0,STATE.topN), STATE.maskMode);
-  const indTxt = indFilterText();
   // 环比：本月 vs 上月（口径与 renderHB、renderShare 一致）
   const hbMap = computeMonthMap(side, mode);
+  // 「x月患者人数」=基准月去重患者数：按患者数排序时，TopN 入选与排序均按基准月值，与展示列保持一致
+  if(hbMap && STATE.sortBy==='patients'){
+    aggAll.forEach(r=>{ r._curP = hbRowVal(hbMap, mode, r); });
+    aggAll = aggAll.slice().sort((a,b)=> (b._curP-a._curP) || b.dot-a.dot);
+  }
+  const top = anonymize(aggAll.slice(0,STATE.topN), STATE.maskMode);
+  const indTxt = indFilterText();
   const title = side==='left'
     ? `焦点品种：${prodLabel(GMETA.focus)} · 适应症：${indTxt}`
     : `同类品种整体（${GMETA.compCount} 个品种） · 适应症：${indTxt}`;
-  const sub = `${GMETA.catTxt} · ${GMETA.winTxt} · ${GMETA[side==='left'?'leftRows':'rightRows'].toLocaleString()} 行`
+  const sub = (hbMap ? `患者数=${hbMonthLabel(hbMap.curLabel)}（基准月） · ` : '')
+            + `${GMETA.catTxt} · ${GMETA.winTxt} · ${GMETA[side==='left'?'leftRows':'rightRows'].toLocaleString()} 行`
             + (mode==='hospital' ? ' · 医院汇总' : '');
   renderTable(side, top, title, sub, mode, hbMap);
 
@@ -1985,7 +2019,10 @@ function renderSide(side){
   const barsTitle = document.getElementById(side+'BarsTitle');
   if(mode==='doctor'){
     barsEl.style.display=''; barsTitle.style.display='';
-    renderBars(side+'Bars', top);
+    barsTitle.textContent = hbMap
+      ? `TOP 医院（按${hbMonthLabel(hbMap.curLabel)}患者数合计，医生以 / 间隔）`
+      : 'TOP 医院（按患者数合计，医生以 / 间隔）';
+    renderBars(side+'Bars', top, hbMap, mode);
   } else {
     barsEl.style.display='none'; barsTitle.style.display='none'; barsEl.innerHTML='';
   }
@@ -2000,41 +2037,47 @@ function renderSide(side){
 }
 
 /* ============ 医院汇总 → 医生明细 下钻 ============ */
-function drillDownHospital(side, hospName, parentHb){
+function drillDownHospital(side, hospName){
   // 从医生明细数据中过滤该医院的所有行
   const allDocs = GVIEW[side].doctor || [];
   let filtered = allDocs.filter(r => r.hosp === hospName);
   // 同名跨科室合并（与主医生明细视图一致）
   filtered = mergeDoctorsByHospital(filtered);
-  // 按患者数降序
-  filtered.sort((a,b) => b.patients - a.patients);
-  const top = anonymize(filtered, STATE.maskMode);
-
-  // 环比：在父表已算好的本月/上月 Map 里，仅过滤当前医院即可
+  // 环比：按医生口径重算月度 Map（医院汇总表的 Map 键为医院名，无法过滤出医生），再限定当前医院
   let hbMap = null;
-  if(parentHb){
+  const docHb = computeMonthMap(side, 'doctor');
+  if(docHb){
     const curSize = new Map(), prevSize = new Map();
-    parentHb.curSize.forEach((v,k)=>{ if(k.startsWith(hospName+'§')) curSize.set(k, v); });
-    parentHb.prevSize.forEach((v,k)=>{ if(k.startsWith(hospName+'§')) prevSize.set(k, v); });
-    hbMap = { curSize, prevSize, curLabel: parentHb.curLabel, prevLabel: parentHb.prevLabel };
+    docHb.curSize.forEach((v,k)=>{ if(k.startsWith(hospName+'§')) curSize.set(k, v); });
+    docHb.prevSize.forEach((v,k)=>{ if(k.startsWith(hospName+'§')) prevSize.set(k, v); });
+    hbMap = { curSize, prevSize, curLabel: docHb.curLabel, prevLabel: docHb.prevLabel };
   }
+  // 排序：有环比口径时按基准月患者数（与主表「x月患者人数」一致），否则按窗口患者数
+  if(hbMap){
+    filtered.forEach(r=>{ r._curP = hbDocVal(hbMap.curSize, r.hosp, r.doctor); });
+    filtered.sort((a,b)=> (b._curP-a._curP) || b.dot-a.dot);
+  } else {
+    filtered.sort((a,b)=> b.patients - a.patients);
+  }
+  const top = anonymize(filtered, STATE.maskMode);
 
   // 切换表头为医生明细（带返回按钮）
   const thead = document.getElementById(side+'Head');
   const tbody = document.querySelector(`#${side}Table tbody`);
   const hbHead = hbMap ? `<th class="num">患者人数环比<br><span class="hb-cap">${hbMap.prevLabel}→${hbMap.curLabel}</span></th>` : '';
+  const patHead = hbMap ? (hbMonthLabel(hbMap.curLabel)+'患者人数') : '患者人数';
   thead.innerHTML = `<tr>
     <th class="rank">#</th><th>处方科室</th><th>处方医生</th>
-    <th class="num">患者人数</th><th class="num">DOT</th>${hbHead}</tr>`;
+    <th class="num">${patHead}</th><th class="num">DOT</th>${hbHead}</tr>`;
   tbody.innerHTML = '';
   top.forEach((r,idx)=>{
     const tr=document.createElement('tr');
     if(r._opp) tr.className='opp';
-    const cur = hbMap? (hbMap.curSize.get(r.hosp+'§'+r.dept+'§'+r.doctor)||0) : 0;
-    const prev = hbMap? (hbMap.prevSize.get(r.hosp+'§'+r.dept+'§'+r.doctor)||0) : 0;
+    const cur = hbMap? hbDocVal(hbMap.curSize, r.hosp, r.doctor) : 0;
+    const prev = hbMap? hbDocVal(hbMap.prevSize, r.hosp, r.doctor) : 0;
     tr.innerHTML = `<td class="rank">${idx+1}</td>`+
       `<td>${esc(r.dept)}</td><td>${esc(r.docDisp)}</td>`+
-      `<td class="num">${r.patients.toLocaleString()}</td>`+
+      `<td class="num">${(hbMap?cur:r.patients).toLocaleString()}</td>`+
       `<td class="num">${r.dot.toFixed(2)}</td>`+
       (hbMap? `<td class="num">${hbHtml(cur, prev)}</td>` : '');
     tbody.appendChild(tr);
