@@ -904,6 +904,10 @@ const CITY_SPECIAL_HOSP = [
   ['四川省肿瘤医院','成都'],['核工业四一六医院','成都'],['武警四川总队医院','成都']
 ];
 function parseCity(hospRaw, payRaw){
+  const c = parseCityRaw(hospRaw, payRaw);
+  return c==='凉山' ? '西昌' : c;   // 用户口径(2026-10-09): 凉山州数据统一显示为「西昌」
+}
+function parseCityRaw(hospRaw, payRaw){
   const pay = (payRaw||'');
   if(pay){
     if(pay.indexOf('凉山州')>=0) return '凉山';
