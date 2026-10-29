@@ -504,6 +504,7 @@
   <div class="card hidden" id="resCard">
     <div class="res-head">
       <h2>⑥ 分析结果</h2>
+      <div class="pane-ctl" style="margin:0;"><label>环比区间</label><select class="pane-time" data-pane="hb"></select><span class="pane-custom hidden" data-pane="hb"><input type="date" class="pane-cs" data-pane="hb">~<input type="date" class="pane-ce" data-pane="hb"></span></div>
       <select id="resIndSel"><option value="">全部细分</option></select>
     </div>
     <div id="hbCard" class="hb-card"></div>
@@ -1969,32 +1970,38 @@ function indFilterText(){
 }
 function renderHB(){
   const el=document.getElementById('hbCard'); if(!el) return;
-  if(!RAW.length || !STATE.hbMonth){ el.innerHTML=''; return; }
-  const M=STATE.hbMonth, prevYm=hbPrevYm(M);
+  if(!RAW.length){ el.innerHTML=''; return; }
   const catFilter = STATE.cat==='整体'? null : STATE.cat;
-  const byProd=new Map();
-  for(const r of RAW){ if(catFilter && r.cat!==catFilter) continue; if(STATE.indFilter && !STATE.indFilter.has(r.ind)) continue;
-    const ym=r.d.getFullYear()+'-'+String(r.d.getMonth()+1).padStart(2,'0');
-    let m=byProd.get(r.prod); if(!m){m=new Map();byProd.set(r.prod,m);}
-    let o=m.get(ym); if(!o){o={p:new Set(),q:0,a:0};m.set(ym,o);}
-    o.p.add(r.pk); o.q+=r.convQty; o.a+=r.amt; }
-  function agg(prods, month){ let p=new Set(),q=0,a=0;
-    for(const pr of prods){ const m=byProd.get(pr); if(!m) continue; const o=m.get(month); if(!o) continue; o.p.forEach(x=>p.add(x)); q+=o.q; a+=o.a; }
-    return {p:p.size,q,a}; }
-  const fC=agg([STATE.focus],M), fP=agg([STATE.focus],prevYm);
-  const cC=agg([...STATE.competitors],M), cP=agg([...STATE.competitors],prevYm);
+  const PP = getPanePeriod('hb');   // 环比区间随本板块筛选（月选/YTD/自定义）
+  if(!PP){ el.innerHTML=''; return; }
+  function aggRange(prods){
+    const cur={p:new Set(),q:0,a:0}, prev={p:new Set(),q:0,a:0};
+    for(const r of RAW){
+      if(catFilter && r.cat!==catFilter) continue;
+      if(STATE.indFilter && !STATE.indFilter.has(r.ind)) continue;
+      if(prods && !prods.has(r.prod)) continue;
+      if(r.d>=PP.cs && r.d<=PP.ce){ cur.p.add(r.pk); cur.q+=r.convQty; cur.a+=r.amt; }
+      else if(r.d>=PP.ps && r.d<=PP.pe){ prev.p.add(r.pk); prev.q+=r.convQty; prev.a+=r.amt; }
+    }
+    return {cur, prev};
+  }
+  const fR=aggRange(new Set([STATE.focus]));
+  const cR=aggRange(new Set(STATE.competitors));   // 同类合计=跨品种合并去重（与原口径一致）
+  const fC=fR.cur, fP=fR.prev, cC=cR.cur, cP=cR.prev;
+  const prevTag = PP.cmpTxt==='前一月' ? '上月 ' : (PP.cmpTxt+' ');
   const pct=(cur,prev)=>{ if(!prev){ return '<span class="hb-na">—</span>'; }
     const v=(cur-prev)/prev*100; const cls=v>=0?'hb-up':'hb-down'; const arr=v>=0?'▲':'▼';
-    return '<span class="'+cls+'">'+arr+Math.abs(v).toFixed(1)+'%</span><span class="hb-prev">上月 '+num(prev)+'</span>'; };
+    return '<span class="'+cls+'">'+arr+Math.abs(v).toFixed(1)+'%</span><span class="hb-prev">'+prevTag+num(prev)+'</span>'; };
   const money=n=> '¥'+Math.round(n).toLocaleString();
   const num=n=> Math.round(n).toLocaleString();
-  const rows=[['去重患者数',fC.p,fP.p,cC.p,cP.p,false],['转化后数量',fC.q,fP.q,cC.q,cP.q,false]];
+  const rows=[['去重患者数',fC.p.size,fP.p.size,cC.p.size,cP.p.size,false],['转化后数量',fC.q,fP.q,cC.q,cP.q,false]];
   let body='';
   rows.forEach(r=>{ const d=r[5]?money:num;
     body+='<tr><td>'+r[0]+'</td>'+
       '<td class="num">'+d(r[1])+'</td><td class="num">'+pct(r[1],r[2])+'</td>'+
       '<td class="num">'+d(r[3])+'</td><td class="num">'+pct(r[3],r[4])+'</td></tr>'; });
-  el.innerHTML='<h3>环比（基准月 '+M+' vs 上月 '+prevYm+'） · 适应症：'+indFilterText()+'</h3>'+
+  const periodTxt = PP.cmpTxt==='前一月' ? ('基准月 '+PP.label+' vs 上月 '+PP.prevLabel) : ('基准区间 '+PP.label+' vs '+PP.prevLabel);
+  el.innerHTML='<h3>环比（'+periodTxt+'） · 适应症：'+indFilterText()+'</h3>'+
     '<table class="hb-tbl"><thead><tr><th>指标</th><th class="num">焦点品种·本期</th><th class="num">焦点·环比</th><th class="num">同类品种合计·本期</th><th class="num">同类合计·环比</th></tr></thead><tbody>'+body+'</tbody></table>';
 }
 
@@ -4168,7 +4175,8 @@ function initPaneTimeSels(){
       const pane = sel.getAttribute('data-pane');
       STATE.paneTime[pane] = sel.value==='global'? null : sel.value;
       syncPaneCustomVis(pane);
-      renderCharts();   // 只重画当前板块；隐藏板块切换 tab 时会自动重算
+      if(pane==='hb') renderHB();
+      else renderCharts();   // 只重画当前板块；隐藏板块切换 tab 时会自动重算
     });
   });
   document.querySelectorAll('input.pane-cs, input.pane-ce').forEach(inp=>{
