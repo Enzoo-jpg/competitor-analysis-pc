@@ -137,6 +137,10 @@
   .chart-tab{padding:7px 14px;border:1px solid var(--line);border-radius:20px;background:#fff;
        cursor:pointer;font-size:13px;user-select:none;}
   .chart-tab.active{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600;}
+  .pane-ctl{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:12px;color:var(--muted);flex-wrap:wrap;}
+  .pane-ctl label{font-weight:600;color:var(--ink);flex-shrink:0;}
+  .pane-ctl select{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:12px;}
+  .pane-ctl-note{color:var(--muted);font-size:11px;}
   .chart-cat-sel{margin-left:auto;align-self:center;border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:13px;color:var(--ink);background:#fff;min-width:120px;cursor:pointer;}
   .chart-prod-filter{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-left:16px;padding:4px 10px;border:1px solid var(--line);border-radius:20px;background:#fafbfc;font-size:12px;}
   .chart-prod-filter label{display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:2px 6px;border-radius:12px;white-space:nowrap;transition:.15s;}
@@ -558,6 +562,7 @@
 
     <!-- 同类品种份额 -->
     <div class="chart-pane" data-pane="share">
+      <div class="pane-ctl"><label>基准月</label><select class="pane-time" data-pane="share"></select><span class="pane-ctl-note">图表与明细按所选单月去重，环比=前一月；默认跟随全局（底表最新月）</span></div>
       <div class="chart-box"><canvas id="chartShare"></canvas></div>
       <div class="chart-note">口径：当前适应症大类 + 时间窗口内，所选焦点品种与同类品种的<b>去重患者数</b>占比（同一患者按所购品种分别计入）。柱形按患者数降序，焦点品种以品牌色突出。</div>
       <div id="shareTable" class="mini-table"></div>
@@ -565,6 +570,7 @@
 
     <!-- 城市覆盖 -->
     <div class="chart-pane hidden" data-pane="city">
+      <div class="pane-ctl"><label>明细基准月</label><select class="pane-time" data-pane="city"></select><span class="pane-ctl-note">明细表环比按所选单月；图表口径仍为顶部时间窗口</span></div>
       <div class="chart-box"><canvas id="chartCity"></canvas></div>
       <div class="chart-note">口径：按院名/收款方式(医保统筹)解析地市。焦点品种 vs 同类品种合计的<b>去重患者数</b>城市分布（全部城市）。解析覆盖率约 99.9%，其余归「其他」。</div>
       <div id="cityTable" class="mini-table"></div>
@@ -579,6 +585,7 @@
           <option value="qty">数量(销量)</option>
         </select>
       </div>
+      <div class="sub-ctl"><label>时间窗口</label><select class="pane-time" data-pane="trend"><option value="global">跟随全局</option><option value="all">全部时间</option><option value="1">近1月</option><option value="3">近3月</option><option value="6">近6月</option><option value="12">近12月</option></select></div>
       <div class="chart-box"><canvas id="chartTrend"></canvas></div>
       <div class="chart-note">口径：当前适应症大类 + 时间窗口内，按月聚合。焦点品种 vs 同类品种合计两条曲线，对比增长走势与季节性。</div>
       <div id="trendTable" class="mini-table"></div>
@@ -586,6 +593,7 @@
 
     <!-- 患者画像差异 -->
     <div class="chart-pane hidden" data-pane="profile">
+      <div class="pane-ctl"><label>时间窗口</label><select class="pane-time" data-pane="profile"><option value="global">跟随全局</option><option value="all">全部时间</option><option value="1">近1月</option><option value="3">近3月</option><option value="6">近6月</option><option value="12">近12月</option></select><span class="pane-ctl-note">画像明细表的基准月行仍为底表最新月</span></div>
       <div class="chart-box"><canvas id="chartAge"></canvas></div>
       <div id="ageTable" class="mini-table"></div>
       <div class="chart-box" style="height:280px;margin-top:14px;"><canvas id="chartSex"></canvas></div>
@@ -595,6 +603,7 @@
 
     <!-- 医院份额：锁定单家医院，看各品种患者份额 -->
     <div class="chart-pane hidden" data-pane="hosp">
+      <div class="pane-ctl"><label>基准月</label><select class="pane-time" data-pane="hosp"></select><span class="pane-ctl-note">图表/明细/汇总/医院列表按所选单月去重；默认跟随全局（底表最新月）</span></div>
       <div class="sub-ctl">
         <label>锁定医院</label>
         <div class="hosp-search">
@@ -716,6 +725,7 @@ const STATE = {
   customStart: null,
   customEnd: null,
   chartTab: 'share',
+  paneTime: {},   // 各板块独立时间筛选：share/city/hosp=基准月ym(null=跟随全局底表最新月)；trend/profile='all'/'1'/'3'/'6'/'12'(null=跟随全局)
   trendMetric: 'patients',
   lockHospital: null,   // 医院份额视图锁定的医院（单选主院，兼容保留）
   lockHospitals: new Set(),   // 医院份额多选锁定集合（至少一家；与 lockHospital 同步）
@@ -2051,6 +2061,7 @@ function recalc(){
   renderCharts();   // 同步刷新多维分析图表
   fillChartCatSel(); // 同步多维视角内的适应症下拉
   populateHbMonths();
+  populatePaneTimeSels();
   renderHB();
   } catch(err) {
     console.error('recalc 异常:', err);
@@ -2180,8 +2191,32 @@ function dedupBy(rows, keyFn){
 }
 
 // 当前口径下的行集合
-function rowsInScope(prodSet, catFilter){
-  const {start,end} = getWindow();
+/* 板块独立时间筛选：单月型板块(share/city/hosp)取基准月；窗口型板块(trend/profile)取窗口 */
+function getPaneHbMonth(pane){
+  const t = STATE.paneTime && STATE.paneTime[pane];
+  return (t && t !== 'global') ? t : getHbMonth();
+}
+function getWindowFor(pane){
+  const t = STATE.paneTime && STATE.paneTime[pane];
+  if(!t || t === 'global') return getWindow();
+  if(t === 'all') return {start: DATE_MIN, end: DATE_MAX};
+  const months = parseInt(t, 10);
+  const end = DATE_MAX;
+  return {start: new Date(end.getFullYear(), end.getMonth()-months+1, 1), end};
+}
+/* 同 rowsInScope 但不限日期（单月型板块的基准月可能不在全局窗口内） */
+function rowsNoDate(prodSet, catFilter){
+  const res=[];
+  for(const r of RAW){
+    if(prodSet && !prodSet.has(r.prod)) continue;
+    if(catFilter && r.cat !== catFilter) continue;
+    if(STATE.indFilter && !STATE.indFilter.has(r.ind)) continue;
+    res.push(r);
+  }
+  return res;
+}
+function rowsInScope(prodSet, catFilter, pane){
+  const {start,end} = pane? getWindowFor(pane) : getWindow();
   const res = [];
   for(const r of RAW){
     if(r.d < start || r.d > end) continue;
@@ -2213,9 +2248,9 @@ function renderShare(){
   let prods = new Set([STATE.focus, ...STATE.competitors]);
   const filterProds = getChartProds();
   if(filterProds) prods = new Set([...prods].filter(p => filterProds.has(p)));
-  const rows = rowsInScope(prods, catFilter);
-  // 口径：统一为 hbM（底表最新月）单月 vs 上一月，柱状图与明细表一致
-  const hbM = getHbMonth();
+  const rows = rowsNoDate(prods, catFilter);   // 单月型板块：基准月可能不在全局窗口内，取全期再按月筛
+  // 口径：统一为基准月单月 vs 上一月（基准月随本板块「基准月」筛选，默认=底表最新月）
+  const hbM = getPaneHbMonth('share');
   const prevYm = hbM? hbPrevYm(hbM):'';
   const currPat=new Map(), prevPat=new Map(), currQty=new Map(), prevQty=new Map();
   if(hbM){ for(const r of rows){ const ym=r.d.getFullYear()+'-'+String(r.d.getMonth()+1).padStart(2,'0'); if(ym!==hbM && ym!==prevYm) continue; const pk=r.pk; const isCur=ym===hbM; const pMap=isCur?currPat:prevPat, qMap=isCur?currQty:prevQty; let s=pMap.get(r.prod); if(!s){s=new Set();pMap.set(r.prod,s);} s.add(pk); qMap.set(r.prod,(qMap.get(r.prod)||0)+r.convQty); } }
@@ -2263,7 +2298,7 @@ function renderShare(){
     isFocus: p===STATE.focus
   })).filter(x=>x.patients>0 || x.qty>0).sort((a,b)=> b.patients - a.patients);
   const shareHbTxt = hbM && prevYm ? `${prevYm}（上月）vs ${hbM}（本月）` : '';
-  let html = `<div class="hosp-hb-note">明细表口径：${shareHbTxt}（固定为底表最新月，不随顶部时间窗口变化）</div>`+
+  let html = `<div class="hosp-hb-note">明细表口径：${shareHbTxt}（随本板块上方的时间筛选）</div>`+
              '<table><thead><tr><th>品种</th><th class="num">患者数</th><th class="num">患者数环比</th><th class="num">患者占比</th><th class="num">患者占比环比</th><th class="num">销量(数量)</th><th class="num">销量环比</th></tr></thead><tbody>';
   hbItems.forEach(it=>{
     const cls = it.isFocus? 'class="c-focus"':'';
@@ -2316,8 +2351,8 @@ function renderCity(){
         title:{ display:true, text:'各城市去重患者数：焦点品种 vs 同类品种合计（全部城市）' } },
       scales:{ x:{ stacked:true, ticks:{ autoSkip:false, maxRotation:90 } }, y:{ stacked:true, title:{display:true,text:'去重患者数'} } } }
   });
-  // 环比表格：口径固定为 STATE.hbMonth（底表最新月）vs 上一月，与⑥分析结果保持一致
-  const hbM = getHbMonth();
+  // 环比表格：基准月随本板块「明细基准月」筛选（默认=底表最新月）；图表口径仍为顶部时间窗口
+  const hbM = getPaneHbMonth('city');
   const prevYm = hbM? hbPrevYm(hbM):'';
   function cityHbMap(rows){
     const curMap=new Map(), prevMap=new Map();
@@ -2330,7 +2365,8 @@ function renderCity(){
     }
     return {cur:curMap, prev:prevMap};
   }
-  const fHb = cityHbMap(focusRows), cHb = cityHbMap(compRows);
+  // 基准月取数不限全局窗口（板块基准月可能早于窗口起点）
+  const fHb = cityHbMap(rowsNoDate(new Set([STATE.focus]), catFilter)), cHb = cityHbMap(rowsNoDate(compSet, catFilter));
   // 用 hbM 月份数据重排（先铺全期全量城市，再叠基准月值；无基准月数据的城市排最后，环比显示 —）
   const hbCityMap = new Map();
   for(const x of arr) hbCityMap.set(x.city,{city:x.city,f:0,c:0});
@@ -2359,11 +2395,11 @@ function renderCity(){
 /* 时间趋势: 按月聚合 焦点 vs 同类品种合计 */
 function renderTrend(){
   const catFilter = STATE.cat==='整体'? null : STATE.cat;
-  const focusRows = rowsInScope(new Set([STATE.focus]), catFilter);
+  const focusRows = rowsInScope(new Set([STATE.focus]), catFilter, 'trend');
   let compSet = STATE.competitors;
   const filterProds = getChartProds();
   if(filterProds) compSet = new Set([...compSet].filter(p => filterProds.has(p)));
-  const compRows = rowsInScope(compSet, catFilter);
+  const compRows = rowsInScope(compSet, catFilter, 'trend');
   const metric = STATE.trendMetric;
   // 收集月份
   const months = new Set();
@@ -2434,7 +2470,7 @@ function renderProfile(){
   let scopeProds = new Set([STATE.focus, ...STATE.competitors]);
   const filterProds = getChartProds();
   if(filterProds) scopeProds = new Set([...scopeProds].filter(p => filterProds.has(p)));
-  const scope = rowsInScope(scopeProds, catFilter);
+  const scope = rowsInScope(scopeProds, catFilter, 'profile');
   const buckets = [['<18',x=>x<18],['18-29',x=>x>=18&&x<30],['30-39',x=>x<40],['40-49',x=>x<50],
                    ['50-59',x=>x<60],['60-69',x=>x<70],['70+',x=>x>=70]];
   // 按月份集合聚合画像（null 表示整个窗口期）
@@ -2551,14 +2587,15 @@ let HOSP_LIST = [];          // 当前口径下的医院列表(按患者数降�
 let HOSP_LIST_SIG = '';      // 医院列表缓存签名(适应症+窗口)
 function buildHospSelect(){
   const catFilter = STATE.cat==='整体'? null : STATE.cat;
-  const w = getWindow();
-  const sig = catFilter + '|' + fmtD(w.start) + '|' + fmtD(w.end);
+  const paneM = getPaneHbMonth('hosp');   // 下拉列表计数与图表同口径（板块基准月）
+  const sig = catFilter + '|' + (paneM||'');
   if(sig !== HOSP_LIST_SIG){
     const cnt = new Map();
     for(const r of RAW){
-      if(r.d < w.start || r.d > w.end) continue;
       if(catFilter && r.cat !== catFilter) continue;
       if(STATE.indFilter && !STATE.indFilter.has(r.ind)) continue;
+      const ymC = r.d.getFullYear()+'-'+String(r.d.getMonth()+1).padStart(2,'0');
+      if(ymC !== paneM) continue;
       let s = cnt.get(r.hosp);
       if(!s){ s = new Set(); cnt.set(r.hosp, s); }
       s.add(r.oneid + '|' + r.invoice);
@@ -2661,13 +2698,13 @@ function drawHospChart(){
     s.add(r.oneid + '|' + r.invoice);
     qtyMap.set(r.prod, (qtyMap.get(r.prod)||0) + r.convQty);
   }
-  // 环比：按医院+基准月/上月聚合
-  const hbM = getHbMonth();
+  // 环比：按医院+基准月/上月聚合（基准月随本板块「基准月」筛选）
+  const hbM = getPaneHbMonth('hosp');
   const prevYm = hbM? hbPrevYm(hbM):'';
   const currPat=new Map(), prevPat=new Map(), currQty=new Map(), prevQty=new Map();
   if(hbM){
     for(const r of RAW){
-      if(r.d < w.start || r.d > w.end) continue;
+      // 板块基准月可能不在全局窗口内，此处不限日期（下方已按 hbM/prevYm 过滤）
       if(catFilter && r.cat !== catFilter) continue;
       if(STATE.indFilter && !STATE.indFilter.has(r.ind)) continue;
       if(!hospSet.has(r.hosp)) continue;
@@ -2734,7 +2771,7 @@ function drawHospChart(){
     const cq = currQty.get(prod)||0;
     return { prod, patients: cp, qty: cq, isFocus: prod===STATE.focus };
   }).filter(x=>x.patients>0 || x.qty>0).sort((a,b)=>b.patients-a.patients);
-  let html = sumHtml + `<div class="hosp-hb-note">明细表口径：${hbWinTxt}（固定为底表最新月，不随顶部时间窗口变化）</div>`+
+  let html = sumHtml + `<div class="hosp-hb-note">明细表口径：${hbWinTxt}（随本板块上方的时间筛选）</div>`+
              '<table><thead><tr><th>品种</th><th class="num">患者数</th><th class="num">患者数环比</th><th class="num">患者占比</th><th class="num">患者占比环比</th><th class="num">销量(数量)</th><th class="num">销量环比</th></tr></thead><tbody>';
   hbItems.forEach(it=>{
     const cls = it.isFocus? 'class="c-focus"':'';
@@ -4063,6 +4100,28 @@ document.getElementById('timePreset').addEventListener('change', e=>{
   document.getElementById('customRange').classList.toggle('hidden', e.target.value!=='custom');
   recalcAsync();
 });
+initPaneTimeSels();   // 板块独立时间筛选：一次性绑定（选项在 populatePaneTimeSels 填充）
+/* 板块独立时间筛选：月份型板块选项=底表全部月份（降序）；窗口型=静态选项 */
+function populatePaneTimeSels(){
+  const ms=[...new Set(RAW.map(r=>r.d.getFullYear()+'-'+String(r.d.getMonth()+1).padStart(2,'0')))].sort().reverse();
+  document.querySelectorAll('select.pane-time').forEach(sel=>{
+    const pane = sel.getAttribute('data-pane');
+    if(pane==='trend' || pane==='profile') return;   // 静态选项，无需填充
+    const cur = STATE.paneTime[pane] || 'global';
+    sel.innerHTML = '<option value="global">跟随全局（底表最新月）</option>' + ms.map(m=>'<option value="'+m+'">'+m+'</option>').join('');
+    if(cur!=='global' && !ms.includes(cur)){ STATE.paneTime[pane] = null; sel.value='global'; }
+    else sel.value = cur;
+  });
+}
+function initPaneTimeSels(){
+  document.querySelectorAll('select.pane-time').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      const pane = sel.getAttribute('data-pane');
+      STATE.paneTime[pane] = sel.value==='global'? null : sel.value;
+      renderCharts();   // 只重画当前板块；隐藏板块切换 tab 时会自动重算
+    });
+  });
+}
 function populateHbMonths(){
   // 固定为底表最新月，不允许手动切换
   const months=[...new Set(RAW.map(r=>r.d.getFullYear()+'-'+String(r.d.getMonth()+1).padStart(2,'0')))].sort();
