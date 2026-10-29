@@ -202,6 +202,45 @@
   .mini-table th:first-child,.mini-table td:first-child{text-align:left;}
   .mini-table td.num{text-align:right;font-variant-numeric:tabular-nums;}
   .c-focus{color:var(--brand);font-weight:600;}
+  /* ⑧ 医院×药品矩阵 */
+  .mx-tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
+  .mx-tab{padding:6px 13px;border:1px solid var(--line);border-radius:20px;background:#fff;
+       cursor:pointer;font-size:12.5px;color:var(--muted);user-select:none;transition:.15s;}
+  .mx-tab:hover{border-color:var(--brand);color:var(--brand);}
+  .mx-tab.active{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600;}
+  .mx-ctl{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+  .mx-ctl label{font-size:12px;color:var(--muted);font-weight:600;}
+  .mx-ctl select{padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:12.5px;color:var(--ink);cursor:pointer;}
+  .mx-prods{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:5px 11px;border:1px solid var(--line);border-radius:20px;background:#fafbfc;font-size:12px;}
+  .mx-prods label{display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:2px 6px;border-radius:12px;white-space:nowrap;transition:.15s;}
+  .mx-prods label:hover{background:#eef2f9;}
+  .mx-prods label input{margin:0;cursor:pointer;accent-color:var(--brand);}
+  .mx-prods .prod-all{font-weight:600;color:var(--brand);border-right:1px solid var(--line);padding-right:8px;margin-right:4px;}
+  .mx-prods .prod-focus{color:#8b87a0;background:#f0eef7;border-right:1px solid var(--line);padding-right:8px;margin-right:4px;cursor:default;}
+  .mx-sum{margin:8px 0;padding:9px 13px;background:#f2f0fa;border-left:3px solid #8b87a0;border-radius:4px;font-size:12.5px;line-height:1.75;}
+  .mx-sum b{color:var(--brand);}
+  .mx-sum .mx-sum-list{margin-top:5px;padding-top:5px;border-top:1px dashed #dcdcec;max-height:76px;overflow-y:auto;}
+  .mx-sum .mx-sum-item{display:inline-block;margin:0 16px 3px 0;white-space:nowrap;}
+  .mx-sum .mx-sum-item i{font-style:normal;color:var(--muted);}
+  .mx-table{width:100%;font-size:12px;margin-top:10px;overflow:auto;max-height:620px;}
+  .mx-table table{border-collapse:collapse;}
+  .mx-table th,.mx-table td{padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  .mx-table thead th{background:#eef2f9;color:#374151;font-weight:600;text-align:right;position:sticky;top:0;z-index:3;}
+  .mx-table th.mx-prod{min-width:92px;max-width:92px;overflow:hidden;text-overflow:ellipsis;}
+  .mx-table th.mx-prod>span{display:block;overflow:hidden;text-overflow:ellipsis;}
+  .mx-table thead tr.mx-grp th{text-align:center;background:#dfe7f5;border-bottom:1px solid #cdd8ea;position:sticky;top:0;z-index:4;}
+  .mx-table thead tr.mx-col th{top:29px;z-index:3;}
+  .mx-table td.mx-hosp{text-align:left;}
+  .mx-table td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  .mx-table tr.mx-city-row td{background:#f4f7fd;font-weight:600;color:var(--brand);border-bottom:1px solid #dbe3f0;}
+  .mx-table tr.mx-hosp-row td.mx-hosp{padding-left:22px;color:var(--ink);font-weight:400;}
+  .mx-table td.mx-zero{color:#c3c8d0;}
+  .mx-table td.mx-total{background:#fafbfc;font-weight:600;}
+  .mx-table th.mx-sortable{cursor:pointer;user-select:none;}
+  .mx-table th.mx-sortable:hover{background:#e2eaf8;color:var(--brand);}
+  .mx-arrow{font-size:9px;color:var(--brand);margin-left:2px;}
+  .mx-note{font-size:11.5px;color:var(--muted);margin-top:6px;background:#f8faff;
+          border-left:3px solid var(--brand2);padding:7px 10px;border-radius:4px;}
   /* 下钻：可点击行 */
   .clickable-row{cursor:pointer;transition:background .15s;}
   .clickable-row:hover{background:#f0f4ff;}
@@ -621,6 +660,22 @@
     </div>
   </div>
 
+  <!-- ⑧ 医院×药品矩阵 -->
+  <div class="card hidden" id="mxCard">
+    <h2>⑧ 医院×药品矩阵</h2>
+    <div class="mx-tabs" id="mxTabs"></div>
+    <div class="mx-ctl">
+      <label>城市</label>
+      <select id="mxCitySel"></select>
+      <label>医院</label>
+      <select id="mxHospSel"></select>
+      <div class="mx-prods" id="mxProdFilter"></div>
+    </div>
+    <div class="mx-sum" id="mxSum"></div>
+    <div class="mx-table" id="mxTable"></div>
+    <div class="mx-note" id="mxNote"></div>
+  </div>
+
   <div class="footer">本地离线工具 · 数据不出本机 · 适配 销售数据汇总.xlsx 结构</div>
 </div>
 
@@ -735,6 +790,12 @@ const STATE = {
   lockHospitals: new Set(),   // 医院份额多选锁定集合（至少一家；与 lockHospital 同步）
   chartProds: null,    // 多维分析品种筛选：null=全选，否则为 Set(选中品种名)
   viewMode: { left: 'doctor', right: 'doctor' },  // 每表视图: doctor=医生明细 / hospital=医院汇总
+  mxCat: '整体',        // ⑧矩阵：领域tab（适应症大类）
+  mxCity: '',          // ⑧矩阵：城市筛选（''=全部）
+  mxHosp: '',          // ⑧矩阵：医院筛选（''=全部）
+  mxProds: null,       // ⑧矩阵：药品多选（null=全选；Set=选中）
+  mxMetric: 'patients',// ⑧矩阵：格子指标 patients=去重患者数 / qty=销售支数
+  mxSort: { key: 'total', dir: -1 },  // ⑧矩阵：排序（key=品种名或'total'；dir=1/-1）
 };
 // 最近一次计算结果（供导出复用，保证与屏幕一致）
 let LAST = { left: [], right: [], meta: {} };
@@ -2026,6 +2087,7 @@ function recalc(){
   populateHbMonths();
   populatePaneTimeSels();
   renderHB();
+  if(typeof renderMatrix === 'function') renderMatrix();
   } catch(err) {
     console.error('recalc 异常:', err);
     if(typeof setStatus==='function') setStatus('计算出现异常：' + (err && err.message ? err.message : err), true);
@@ -2229,6 +2291,384 @@ function rowsInScope(prodSet, catFilter, pane){
 
 function destroyChart(name){
   if(CHARTS[name]){ CHARTS[name].destroy(); delete CHARTS[name]; }
+}
+
+/* ==================== ⑧ 医院×药品矩阵 ==================== */
+/* 数据源：现有 DTP 底表（RAW）——不新建数据源，不改动 recalc 口径
+   行：城市/医院两级层次（城市小计行 → 医院明细行）
+   列：底表品种（板块内独立勾选），列头按现有适应症大类分组
+   格：双指标 = 去重患者数(oneid+开票抬头) / 销售支数(转化后数量)
+   时间：跟随全局时间窗口 */
+const MX = { cols: [], rows: [], cities: [] };
+
+// 矩阵用行集：全局时间窗口 + 当前适应症大类 + 适应症细分筛选 + 城市/医院筛选
+function mxRows(){
+  const {start,end} = getWindow();
+  const catFilter = (STATE.mxCat && STATE.mxCat!=='整体') ? STATE.mxCat : null;
+  const res = [];
+  for(const r of RAW){
+    if(r.d < start || r.d > end) continue;
+    if(catFilter && r.cat !== catFilter) continue;
+    if(STATE.indFilter && !STATE.indFilter.has(r.ind)) continue;
+    if(STATE.mxCity && r.city !== STATE.mxCity) continue;
+    if(STATE.mxHosp && r.hosp !== STATE.mxHosp) continue;
+    res.push(r);
+  }
+  return res;
+}
+
+// 勾选的品种集合（null=全选）
+function getMxProds(){
+  if(STATE.mxProds === null) return new Set(PRODUCTS);
+  return new Set(STATE.mxProds);
+}
+
+// 构建矩阵模型：列分组(大类) + 列(品种) + 行(城市→医院)
+function buildMatrix(){
+  const rows = mxRows();
+  const prods = getMxProds();
+  const use = rows.filter(r => prods.has(r.prod));
+  // 列：按适应症大类分组，组内品种按销量降序
+  const grpMap = new Map();   // cat -> Map(prod -> {qty, pats:Set})
+  for(const r of use){
+    const cat = r.cat || '其他';
+    if(!grpMap.has(cat)) grpMap.set(cat, new Map());
+    const gm = grpMap.get(cat);
+    if(!gm.has(r.prod)) gm.set(r.prod, {qty:0, pats:new Set()});
+    const c = gm.get(r.prod);
+    c.qty += r.convQty; c.pats.add(r.pk);
+  }
+  const order = presentCats().filter(c => c!=='整体');
+  const cats = [];
+  for(const c of order){ if(grpMap.has(c)) cats.push(c); }
+  for(const c of grpMap.keys()){ if(!cats.includes(c)) cats.push(c); }
+  const cols = [];
+  for(const cat of cats){
+    const gm = grpMap.get(cat);
+    const list = [...gm.entries()].sort((a,b)=> b[1].qty - a[1].qty || a[0].localeCompare(b[0]));
+    for(const [prod, v] of list){
+      // 复合键：同一品种可跨多个大类（如艾玛希替尼在 AD 与斑秃分列），必须用 cat§prod 区分
+      cols.push({key: cat+'§'+prod, prod, cat, qty: v.qty, patients: v.pats.size, focus: prod===STATE.focus});
+    }
+  }
+  // 行：城市 → 医院
+  const cellMap = new Map();   // hosp§prod -> {pats:Set, qty}
+  const cityHosps = new Map(); // city -> Map(hosp -> {pats:Set, qty})
+  for(const r of use){
+    const k = r.hosp + '§' + r.cat + '§' + r.prod;
+    if(!cellMap.has(k)) cellMap.set(k, {pats:new Set(), qty:0});
+    const c = cellMap.get(k);
+    c.pats.add(r.pk); c.qty += r.convQty;
+    const ct = r.city || '其他';
+    if(!cityHosps.has(ct)) cityHosps.set(ct, new Map());
+    const hm = cityHosps.get(ct);
+    if(!hm.has(r.hosp)) hm.set(r.hosp, {pats:new Set(), qty:0});
+    const hv = hm.get(r.hosp);
+    hv.pats.add(r.pk); hv.qty += r.convQty;
+  }
+  // 城市小计：该市下所有医院合并去重（患者数跨医院不可相加）
+  const cityAgg = new Map();  // city§prod -> {pats:Set, qty}
+  for(const [ct, hm] of cityHosps){
+    for(const hosp of hm.keys()){
+      for(const col of cols){
+        const cell = cellMap.get(hosp + '§' + col.cat + '§' + col.prod);
+        if(!cell) continue;
+        const ck = ct + '§' + col.cat + '§' + col.prod;
+        if(!cityAgg.has(ck)) cityAgg.set(ck, {pats:new Set(), qty:0});
+        const cv = cityAgg.get(ck);
+        for(const p of cell.pats) cv.pats.add(p);
+        cv.qty += cell.qty;
+      }
+    }
+  }
+  // 组装行
+  const sk = STATE.mxSort.key, dir = STATE.mxSort.dir;
+  const metric = STATE.mxMetric;
+  const sortVal = r => {
+    if(sk === 'total') return metric==='qty' ? r.totalQ : r.totalP;
+    const c = r.cells[sk];
+    if(!c) return 0;
+    return metric==='qty' ? c.qty : c.patients;
+  };
+  const rowList = [];
+  for(const [ct, hm] of cityHosps){
+    const cityRow = { type:'city', city:ct, cells:{}, totalP:0, totalQ:0, hosps:[] };
+    for(const col of cols){
+      const cv = cityAgg.get(ct + '§' + col.cat + '§' + col.prod);
+      cityRow.cells[col.key] = cv ? {patients:cv.pats.size, qty:cv.qty} : {patients:0, qty:0};
+    }
+    const hospList = [];
+    for(const [hosp, hv] of hm){
+      const hr = { type:'hosp', city:ct, hosp, cells:{}, totalP:0, totalQ:0 };
+      for(const col of cols){
+        const cell = cellMap.get(hosp + '§' + col.cat + '§' + col.prod);
+        hr.cells[col.key] = cell ? {patients:cell.pats.size, qty:cell.qty} : {patients:0, qty:0};
+      }
+      hospList.push(hr);
+    }
+    for(const hr of hospList){
+      let p=0,q=0;
+      for(const col of cols){ const c=hr.cells[col.key]; p+=c.patients; q+=c.qty; }
+      hr.totalP=p; hr.totalQ=q;
+    }
+    hospList.sort((a,b)=> (sortVal(b)-sortVal(a)) || a.hosp.localeCompare(b.hosp,'zh'));
+    let cp=0,cq=0;
+    for(const col of cols){ const c=cityRow.cells[col.key]; cp+=c.patients; cq+=c.qty; }
+    cityRow.totalP=cp; cityRow.totalQ=cq;
+    cityRow.hosps = hospList;
+    rowList.push(cityRow);
+  }
+  rowList.sort((a,b)=> (sortVal(b)-sortVal(a)) || a.city.localeCompare(b.city,'zh'));
+  MX.cols = cols; MX.rows = rowList;
+  MX.cities = [...cityHosps.keys()];
+  return MX;
+}
+
+// 渲染矩阵板块
+function renderMatrix(){
+  const card = document.getElementById('mxCard');
+  if(!card) return;
+  if(!RAW.length){ card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+  buildMxTabs();
+  buildMxProdFilter();
+  populateMxCityHosp();
+  const m = buildMatrix();
+  const cols = m.cols;
+  const sumEl = document.getElementById('mxSum');
+  const tblEl = document.getElementById('mxTable');
+  const noteEl = document.getElementById('mxNote');
+  if(!cols.length){
+    sumEl.innerHTML = '当前筛选下没有可展示的药品数据';
+    tblEl.innerHTML = '<div class="empty">当前范围暂无数据</div>';
+    noteEl.innerHTML = '';
+    return;
+  }
+  const metric = STATE.mxMetric;
+  const tP = cols.reduce((s,c)=>s+c.patients,0);
+  const tQ = cols.reduce((s,c)=>s+c.qty,0);
+  const items = cols.map(c=>'<span class="mx-sum-item"><b>'+esc(truncLabel(prodLabel(c.prod)))+'</b> <i>'+(metric==='qty'? num(c.qty)+'支' : c.patients+'人')+'</i></span>').join('');
+  sumEl.innerHTML = '📌 医院×药品矩阵 · <b>'+cols.length+'</b> 个品种 · 合计 <b>'+(metric==='qty'? num(tQ)+' 支' : tP+' 人')+'</b>（各品种去重患者数之和，同一患者跨品种分别计）<div class="mx-sum-list">'+items+'</div>';
+  // 领域分组
+  const groups = [];
+  for(const c of cols){ if(!groups.length || groups[groups.length-1].cat !== c.cat) groups.push({cat:c.cat, cols:[]}); groups[groups.length-1].cols.push(c); }
+  // 表格最小宽度：固定列(城市/医院/合计) + 每品种列宽，避免列头相互挤压
+  const tblMinWidth = 150 + 60 + cols.length * 96 + 70;
+  let html = '<table style="min-width:'+tblMinWidth+'px"><thead><tr class="mx-grp"><th rowspan="2" style="min-width:150px">城市 / 医院</th>';
+  for(const g of groups){ html += '<th colspan="'+g.cols.length+'">'+esc(g.cat)+'</th>'; }
+  html += '<th rowspan="2">合计</th></tr><tr class="mx-col">';
+  for(const g of groups){
+    for(const c of g.cols){
+      const arrow = (STATE.mxSort.key===c.key) ? '<span class="mx-arrow">'+(STATE.mxSort.dir>0?'▲':'▼')+'</span>' : '';
+      html += '<th class="num mx-sortable mx-prod" data-mxcol="'+esc(c.key)+'" title="'+esc(c.prod)+'（'+esc(c.cat)+'）· 患者'+c.patients+'人 / '+num(c.qty)+'支"><span>'+esc(truncLabel(prodLabel(c.prod)))+'</span>'+arrow+'</th>';
+    }
+  }
+  html += '</tr></thead><tbody>';
+  for(const cr of m.rows){
+    html += '<tr class="mx-city-row"><td class="mx-hosp">'+esc(cr.city)+'</td><td class="mx-hosp">'+cr.hosps.length+' 家医院</td>';
+    for(const c of cols){
+      const v = cr.cells[c.key];
+      const z = (v.patients===0 && v.qty===0);
+      html += '<td class="num '+(z?'mx-zero':'')+'">'+(z? '·' : (metric==='qty'? num(v.qty) : v.patients))+'</td>';
+    }
+    html += '<td class="num mx-total">'+(metric==='qty'? num(cr.totalQ) : cr.totalP)+'</td></tr>';
+    for(const hr of cr.hosps){
+      html += '<tr class="mx-hosp-row"><td class="mx-hosp"></td><td class="mx-hosp">'+esc(hr.hosp)+'</td>';
+      for(const c of cols){
+        const v = hr.cells[c.key];
+        const z = (v.patients===0 && v.qty===0);
+        html += '<td class="num '+(z?'mx-zero':'')+'">'+(z? '·' : (metric==='qty'? num(v.qty) : v.patients))+'</td>';
+      }
+      html += '<td class="num mx-total">'+(metric==='qty'? num(hr.totalQ) : hr.totalP)+'</td></tr>';
+    }
+  }
+  html += '</tbody></table>';
+  tblEl.innerHTML = html;
+  const winTxt = getWinTxt();
+  const catTxt = (STATE.mxCat && STATE.mxCat!=='整体') ? STATE.mxCat : '全适应症';
+  const nHosp = m.rows.reduce((s,r)=>s+r.hosps.length, 0);
+  noteEl.innerHTML =
+    '口径：<b>'+esc(catTxt)+'</b> · 窗口=<b>'+esc(winTxt)+'</b> · 行=<b>城市/医院两级</b>（'+m.cities.length+' 城 / '+nHosp+' 家医院）· 列=<b>'+cols.length+' 个品种</b>（按'+esc(groups.map(g=>g.cat).join('/'))+'分组）。'+
+    '格子=<b>'+(metric==='qty'?'销售支数（转化后数量）':'去重患者数（oneid+开票抬头）')+'</b>，同一患者在同一医院同一品种只计 1 人；「·」表示该院该品种在当前窗口内无销售。'+
+    '<b>患者数跨医院不可相加</b>（同一患者可在多家医院购药），城市行为该市下所有医院<b>合并去重</b>后的值。';
+}
+
+// 领域tab（沿用现有适应症大类体系）
+function buildMxTabs(){
+  const box = document.getElementById('mxTabs');
+  if(!box) return;
+  const cats = presentCats();
+  if(!cats.includes(STATE.mxCat)) STATE.mxCat = cats.includes('整体') ? '整体' : (cats[0]||'整体');
+  box.innerHTML = '';
+  cats.forEach(c=>{
+    const el = document.createElement('div');
+    el.className = 'mx-tab' + (c===STATE.mxCat ? ' active' : '');
+    el.textContent = c;
+    el.setAttribute('data-mxcat', c);
+    box.appendChild(el);
+  });
+}
+
+// 板块内药品多选（独立于④同类品种勾选与⑦多维品种筛选）
+function buildMxProdFilter(){
+  const box = document.getElementById('mxProdFilter');
+  if(!box) return;
+  box.innerHTML = '';
+  const allLab = document.createElement('label');
+  allLab.className = 'prod-all';
+  const allCb = document.createElement('input');
+  allCb.type = 'checkbox'; allCb.checked = (STATE.mxProds === null);
+  allCb.addEventListener('change', ()=>{
+    STATE.mxProds = allCb.checked ? null : new Set([STATE.focus]);
+    renderMatrix();
+  });
+  allLab.appendChild(allCb); allLab.appendChild(document.createTextNode('全选'));
+  box.appendChild(allLab);
+  const fLab = document.createElement('label');
+  fLab.className = 'prod-focus';
+  const fCb = document.createElement('input');
+  fCb.type = 'checkbox'; fCb.checked = true; fCb.disabled = true;
+  fLab.appendChild(fCb); fLab.appendChild(document.createTextNode(prodLabel(STATE.focus) + '（焦点）'));
+  box.appendChild(fLab);
+  PRODUCTS.forEach(p=>{
+    if(p === STATE.focus) return;
+    const lab = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.value = p; cb.className = 'mx-prod-cb';
+    cb.checked = (STATE.mxProds === null || STATE.mxProds.has(p));
+    cb.addEventListener('change', ()=>{
+      const sel = new Set();
+      document.querySelectorAll('#mxProdFilter input.mx-prod-cb').forEach(x=>{ if(x.checked) sel.add(x.value); });
+      STATE.mxProds = sel;
+      const acb = document.querySelector('#mxProdFilter .prod-all input');
+      if(acb) acb.checked = (sel.size === PRODUCTS.length - 1);
+      renderMatrix();
+    });
+    lab.appendChild(cb); lab.appendChild(document.createTextNode(prodLabel(p)));
+    box.appendChild(lab);
+  });
+}
+
+// 城市/医院下拉（医院随城市联动；候选范围=时间窗口+当前大类+适应症细分，不含城市/医院自身筛选）
+function populateMxCityHosp(){
+  const cSel = document.getElementById('mxCitySel');
+  const hSel = document.getElementById('mxHospSel');
+  if(!cSel || !hSel) return;
+  const {start,end} = getWindow();
+  const catFilter = (STATE.mxCat && STATE.mxCat!=='整体') ? STATE.mxCat : null;
+  const cityMap = new Map();  // city -> Set(hosp)
+  for(const r of RAW){
+    if(r.d < start || r.d > end) continue;
+    if(catFilter && r.cat !== catFilter) continue;
+    if(STATE.indFilter && !STATE.indFilter.has(r.ind)) continue;
+    const ct = r.city || '其他';
+    if(!cityMap.has(ct)) cityMap.set(ct, new Set());
+    cityMap.get(ct).add(r.hosp);
+  }
+  const cities = [...cityMap.keys()].sort((a,b)=>a.localeCompare(b,'zh'));
+  if(STATE.mxCity && !cityMap.has(STATE.mxCity)) STATE.mxCity = '';
+  cSel.innerHTML = '';
+  const o0 = document.createElement('option'); o0.value=''; o0.textContent='全部城市'; cSel.appendChild(o0);
+  cities.forEach(c=>{
+    const o=document.createElement('option'); o.value=c; o.textContent=c+'（'+(cityMap.get(c).size)+'家）';
+    if(c===STATE.mxCity) o.selected=true; cSel.appendChild(o);
+  });
+  const hSet = new Set();
+  if(STATE.mxCity) (cityMap.get(STATE.mxCity)||new Set()).forEach(h=>hSet.add(h));
+  else cities.forEach(c=>(cityMap.get(c)||new Set()).forEach(h=>hSet.add(h)));
+  const hs = [...hSet].sort((a,b)=>a.localeCompare(b,'zh'));
+  if(STATE.mxHosp && !hSet.has(STATE.mxHosp)) STATE.mxHosp = '';
+  hSel.innerHTML = '';
+  const h0 = document.createElement('option'); h0.value=''; h0.textContent='全部医院'; hSel.appendChild(h0);
+  hs.forEach(h=>{ const o=document.createElement('option'); o.value=h; o.textContent=h; if(h===STATE.mxHosp)o.selected=true; hSel.appendChild(o); });
+}
+
+/* 矩阵导出：追加独立 sheet「销量盘点」
+   列序：城市 | 医院 | [领域组 → 品种 → (患者数, 支数)] … | 合计(患者数, 支数)
+   三行表头：领域分组 / 品种名 / 指标名；数据行：城市小计行 + 医院明细行
+   空单元格 = 该院该品种窗口内无销售（与界面「·」一致，保留矩阵结构） */
+function appendMatrixSheet(wb){
+  const X = XLSX;
+  const m = buildMatrix();   // 按当前 UI 状态重算，保证导出与界面一致
+  const cols = m.cols;
+  if(!cols.length) return;
+  const groups = [];
+  for(const c of cols){ if(!groups.length || groups[groups.length-1].cat !== c.cat) groups.push({cat:c.cat, cols:[]}); groups[groups.length-1].cols.push(c); }
+  const r1 = v => Math.round(v*10)/10;
+  const a = [];
+  a.push(['医院×药品矩阵（城市/医院 × 品种）']);
+  a.push(['适应症大类', (STATE.mxCat && STATE.mxCat!=='整体') ? STATE.mxCat : '全适应症']);
+  a.push(['时间窗口', getWinTxt()]);
+  a.push(['城市筛选', STATE.mxCity || '全部城市', '', '医院筛选', STATE.mxHosp || '全部医院']);
+  a.push(['患者数口径', 'oneid+开票抬头 去重（同一医院同一品种计1人；城市行为该市下所有医院合并去重）']);
+  a.push(['支数口径', '转化后数量（销售支数）']);
+  a.push(['空单元格', '该院该品种在当前窗口内无销售（界面显示 · ）']);
+  a.push([]);
+  // 表头三行（说明行之后）：领域分组 / 品种名 / 指标名
+  // 列序：城市 | 医院 | [领域组 → 品种 → (患者数, 支数)] … | 合计(患者数, 支数)
+  const rGrp = a.length, rName = rGrp + 1, rMet = rGrp + 2;
+  const grpRow = ['城市', '医院'];
+  const nameRow = ['', ''];
+  const metRow = ['', ''];
+  const mergeSpans = [];   // {cat, start, len}
+  let ci = 2;
+  for(const g of groups){
+    const span = g.cols.length * 2;
+    for(let k=0;k<span;k++){ grpRow.push(null); }
+    grpRow[ci] = g.cat;
+    mergeSpans.push({cat:g.cat, start:ci, len:span});
+    ci += span;
+    for(const c of g.cols){
+      nameRow.push(prodLabel(c.prod), null);
+      metRow.push('患者数', '支数');
+    }
+  }
+  grpRow.push(null, null);
+  grpRow[ci] = '合计';
+  nameRow.push(null, null);
+  metRow.push('患者数', '支数');
+  a.push(grpRow); a.push(nameRow); a.push(metRow);
+  // 数据行
+  for(const cr of m.rows){
+    const row = [cr.city, '（城市小计）'+cr.hosps.length+' 家医院'];
+    for(const c of cols){
+      const v = cr.cells[c.key];
+      const empty = (v.patients===0 && v.qty===0);
+      row.push(empty ? '' : v.patients, empty ? '' : r1(v.qty));
+    }
+    row.push(cr.totalP, r1(cr.totalQ));
+    a.push(row);
+    for(const hr of cr.hosps){
+      const hrow = ['', hr.hosp];
+      for(const c of cols){
+        const v = hr.cells[c.key];
+        const empty = (v.patients===0 && v.qty===0);
+        hrow.push(empty ? '' : v.patients, empty ? '' : r1(v.qty));
+      }
+      hrow.push(hr.totalP, r1(hr.totalQ));
+      a.push(hrow);
+    }
+  }
+  const ws = X.utils.aoa_to_sheet(a);
+  const widths = [{wch:14},{wch:30}];
+  cols.forEach(()=>{ widths.push({wch:9},{wch:9}); });
+  widths.push({wch:9},{wch:9});
+  ws['!cols'] = widths;
+  // 合并：领域分组（跨该领域全部列）、品种名（跨其患者数/支数两列）、合计组头
+  const merges = [];
+  for(const sp of mergeSpans){
+    if(sp.len > 1) merges.push({s:{r:rGrp,c:sp.start}, e:{r:rGrp,c:sp.start+sp.len-1}});
+  }
+  let mi = 2;
+  for(const g of groups){
+    for(const c of g.cols){
+      merges.push({s:{r:rName,c:mi}, e:{r:rName,c:mi+1}});
+      mi += 2;
+    }
+  }
+  merges.push({s:{r:rGrp,c:mi}, e:{r:rGrp,c:mi+1}});   // 合计组头
+  ws['!merges'] = merges;
+  X.utils.book_append_sheet(wb, ws, '销量盘点');
 }
 
 function renderCharts(){
@@ -2897,6 +3337,8 @@ function build12SheetWorkbook(share){
     ws['!cols'] = [{wch:26}, ...m.products.map(()=>({wch:11})), {wch:12}, {wch:8}];
     X.utils.book_append_sheet(wb, ws, '医院份额');
   }
+  // ---- ⑧ 医院×药品矩阵（独立 sheet「销量盘点」）----
+  try { appendMatrixSheet(wb); } catch(err){ console.error('销量盘点 sheet 生成失败:', err); }
   return wb;
 }
 
@@ -4317,6 +4759,46 @@ function fillChartCatSel(){
     });
   }
 }
+/* ============ ⑧ 医院×药品矩阵 交互 ============ */
+/* 指标切换：去重患者数 / 销售支数 */
+(function initMxMetric(){
+  const box = document.getElementById('mxCard');
+  if(!box) return;
+  const ctl = box.querySelector('.mx-ctl');
+  if(!ctl) return;
+  const sel = document.createElement('select');
+  sel.id = 'mxMetricSel';
+  sel.title = '切换矩阵格子显示指标';
+  sel.innerHTML = '<option value="patients">去重患者数</option><option value="qty">销售支数(转化后数量)</option>';
+  sel.value = STATE.mxMetric;
+  sel.addEventListener('change', ()=>{ STATE.mxMetric = sel.value; renderMatrix(); });
+  ctl.appendChild(sel);
+})();
+document.getElementById('mxTabs').addEventListener('click', e=>{
+  const t = e.target.closest('.mx-tab');
+  if(!t) return;
+  STATE.mxCat = t.getAttribute('data-mxcat');
+  STATE.mxHosp = '';
+  renderMatrix();
+});
+document.getElementById('mxCitySel').addEventListener('change', e=>{
+  STATE.mxCity = e.target.value;
+  STATE.mxHosp = '';
+  renderMatrix();
+});
+document.getElementById('mxHospSel').addEventListener('change', e=>{
+  STATE.mxHosp = e.target.value;
+  renderMatrix();
+});
+/* 列头排序 */
+document.getElementById('mxTable').addEventListener('click', e=>{
+  const th = e.target.closest('th.mx-sortable');
+  if(!th) return;
+  const key = th.getAttribute('data-mxcol');
+  if(STATE.mxSort.key === key) STATE.mxSort.dir = -STATE.mxSort.dir;
+  else { STATE.mxSort.key = key; STATE.mxSort.dir = -1; }
+  renderMatrix();
+});
 /* 时间趋势指标切换 */
 document.getElementById('trendMetric').addEventListener('change', e=>{
   STATE.trendMetric = e.target.value;
