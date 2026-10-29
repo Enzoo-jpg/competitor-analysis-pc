@@ -143,6 +143,7 @@
   .chart-prod-filter label:hover{background:#eef2f9;}
   .chart-prod-filter label input{margin:0;cursor:pointer;accent-color:var(--brand);}
   .chart-prod-filter .prod-all{font-weight:600;color:var(--brand);border-right:1px solid var(--line);padding-right:8px;margin-right:4px;}
+  .chart-prod-filter .prod-focus{color:#8b87a0;background:#f0eef7;border-right:1px solid var(--line);padding-right:8px;margin-right:4px;cursor:default;}
   .chart-box{position:relative;width:100%;height:360px;}
   .chart-meta{font-size:12px;color:var(--muted);margin-top:8px;}
   .chart-note{font-size:11.5px;color:var(--muted);margin-top:6px;background:#f8faff;
@@ -1320,7 +1321,7 @@ function buildCompList(focus){
     const lab=document.createElement('label');
     const cb=document.createElement('input');
     cb.type='checkbox'; cb.value=p; cb.checked=true;
-    cb.addEventListener('change', ()=>{ cb.checked?STATE.competitors.add(p):STATE.competitors.delete(p); });
+    cb.addEventListener('change', ()=>{ cb.checked?STATE.competitors.add(p):STATE.competitors.delete(p); STATE.chartProds=null; buildChartProdFilter(); });
     lab.appendChild(cb); lab.appendChild(document.createTextNode(p));
     cl.appendChild(lab);
     STATE.competitors.add(p);
@@ -1354,11 +1355,21 @@ function buildChartProdFilter(){
   allLab.appendChild(allCb); allLab.appendChild(document.createTextNode('全选'));
   container.appendChild(allLab);
 
-  // 各品种
+  // 焦点品种：恒选只读（跟随④，不可取消）
+  const fLab = document.createElement('label');
+  fLab.className = 'prod-focus';
+  const fCb = document.createElement('input');
+  fCb.type = 'checkbox'; fCb.checked = true; fCb.disabled = true;
+  fLab.appendChild(fCb); fLab.appendChild(document.createTextNode(prodLabel(STATE.focus, STATE) + '（焦点）'));
+  container.appendChild(fLab);
+
+  // 同类品种：只列④当前已勾选的同类（与左右表范围一致，④未选品种不出现）
   PRODUCTS.forEach(p => {
+    if(p === STATE.focus) return;
+    if(!STATE.competitors || !STATE.competitors.has(p)) return;
     const lab = document.createElement('label');
     const cb = document.createElement('input');
-    cb.type = 'checkbox'; cb.value = p;
+    cb.type = 'checkbox'; cb.value = p; cb.className = 'prod-cb';
     cb.checked = (STATE.chartProds === null || STATE.chartProds.has(p));
     cb.addEventListener('change', ()=>{
       syncProdFilterState();
@@ -1371,12 +1382,12 @@ function buildChartProdFilter(){
 
 // 从 UI 复选框同步状态到 STATE.chartProds
 function syncProdFilterState(){
-  const cbs = document.querySelectorAll('#chartProdFilter input[type="checkbox"]:not(.prod-all input)');
+  const cbs = document.querySelectorAll('#chartProdFilter input.prod-cb');
   const allCb = document.querySelector('#chartProdFilter .prod-all input');
   let checked = 0;
   const selected = new Set();
   cbs.forEach(cb => { if(cb.checked){ selected.add(cb.value); checked++; } });
-  if(checked === PRODUCTS.length){
+  if(checked === cbs.length){
     STATE.chartProds = null;   // 全选
     if(allCb) allCb.checked = true;
   } else {
@@ -1387,7 +1398,7 @@ function syncProdFilterState(){
 
 // 从 STATE 同步 UI
 function syncProdFilterUI(){
-  const cbs = document.querySelectorAll('#chartProdFilter input[type="checkbox"]:not(.prod-all input)');
+  const cbs = document.querySelectorAll('#chartProdFilter input.prod-cb');
   const allCb = document.querySelector('#chartProdFilter .prod-all input');
   const isAll = (STATE.chartProds === null);
   if(allCb) allCb.checked = isAll;
@@ -1398,7 +1409,7 @@ function syncProdFilterUI(){
 function getChartProds(){
   if(STATE.chartProds === null) return null;  // null = 不过滤
   // 确保焦点始终在列
-  const s = new Set(STATE.chartProds);
+  const s = new Set([...STATE.chartProds].filter(p => STATE.competitors.has(p)));
   s.add(STATE.focus);
   return s;
 }
@@ -3407,6 +3418,7 @@ function renderShareDoc(share){
   .chart-prod-filter label:hover{background:#eef2f9;}
   .chart-prod-filter label input{margin:0;cursor:pointer;accent-color:var(--brand);}
   .chart-prod-filter .prod-all{font-weight:600;color:var(--brand);border-right:1px solid var(--line);padding-right:8px;margin-right:4px;}
+  .chart-prod-filter .prod-focus{color:#8b87a0;background:#f0eef7;border-right:1px solid var(--line);padding-right:8px;margin-right:4px;cursor:default;}
   select{border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:13px;color:var(--ink);background:#fff;min-width:150px;}
   h2{font-size:16px;margin:22px 0 6px;color:var(--brand);border-left:4px solid var(--brand);padding-left:10px;}
   .side-title{font-size:13px;color:#33405a;margin-bottom:8px;font-weight:600;}
@@ -4136,17 +4148,17 @@ document.querySelectorAll('.vtab').forEach(b=>{
 });
 
 document.getElementById('compAll').addEventListener('click', ()=>{
-  document.querySelectorAll('#compList input').forEach(cb=>{cb.checked=true; STATE.competitors.add(cb.value);}); recalcAsync();
+  document.querySelectorAll('#compList input').forEach(cb=>{cb.checked=true; STATE.competitors.add(cb.value);}); STATE.chartProds=null; buildChartProdFilter(); recalcAsync();
 });
 document.getElementById('compAll').addEventListener('dblclick', e=>{
   e.preventDefault();
-  document.querySelectorAll('#compList input').forEach(cb=>{cb.checked=false; STATE.competitors.delete(cb.value);}); recalcAsync();
+  document.querySelectorAll('#compList input').forEach(cb=>{cb.checked=false; STATE.competitors.delete(cb.value);}); STATE.chartProds=null; buildChartProdFilter(); recalcAsync();
 });
 document.getElementById('compNone').addEventListener('click', ()=>{
-  document.querySelectorAll('#compList input').forEach(cb=>{cb.checked=false; STATE.competitors.delete(cb.value);}); recalcAsync();
+  document.querySelectorAll('#compList input').forEach(cb=>{cb.checked=false; STATE.competitors.delete(cb.value);}); STATE.chartProds=null; buildChartProdFilter(); recalcAsync();
 });
 document.getElementById('compInv').addEventListener('click', ()=>{
-  document.querySelectorAll('#compList input').forEach(cb=>{cb.checked=!cb.checked; cb.checked?STATE.competitors.add(cb.value):STATE.competitors.delete(cb.value);}); recalcAsync();
+  document.querySelectorAll('#compList input').forEach(cb=>{cb.checked=!cb.checked; cb.checked?STATE.competitors.add(cb.value):STATE.competitors.delete(cb.value);}); STATE.chartProds=null; buildChartProdFilter(); recalcAsync();
 });
 
 /* 多维分析 tab 切换 */
