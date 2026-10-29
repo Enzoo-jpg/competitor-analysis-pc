@@ -1485,9 +1485,10 @@ function getWindow(){
   const p = STATE.timePreset;
   if(p==='all') return {start:DATE_MIN, end:DATE_MAX};
   if(p==='custom'){
+    // 本地时区解析（'YYYY-MM-DD' 裸 new Date 走 UTC，GMT+8 下窗口终点=当天08:00 会丢数据）
     return {
-      start: STATE.customStart? new Date(STATE.customStart): DATE_MIN,
-      end: STATE.customEnd? new Date(STATE.customEnd): DATE_MAX
+      start: STATE.customStart? new Date(STATE.customStart+'T00:00:00'): DATE_MIN,
+      end: STATE.customEnd? new Date(STATE.customEnd+'T23:59:59'): DATE_MAX
     };
   }
   const months = parseInt(p,10);
@@ -1542,55 +1543,7 @@ function setFocus(p){
   buildChartProdFilter();  // 刷新品种筛选标签（焦点变化后标签可能变）
   recalcAsync();
 }
-// 计算某一侧(焦点/同类品种)在指定适应症大类+视图下的聚合结果（供全量导出复用）
-function computeAgg(prodSet, catFilter, mode){
-  const rows = filterRows(prodSet, catFilter);
-  const agg = mode==='hospital' ? aggregateHosp(rows) : aggregate(rows);
-  const cmp = STATE.sortBy==='dot'
-    ? ((a,b)=> b.dot-a.dot || b.patients-a.patients)
-    : ((a,b)=> b.patients-a.patients || b.dot-a.dot);
-  agg.sort(cmp);
-  return agg;
-}
-
 /* ============ 聚合 ============ */
-function aggregate(rows){
-  const groups = new Map();
-  for(const r of rows){
-    const key = r.hosp+'§'+r.dept+'§'+r.doctor;
-    let g = groups.get(key);
-    if(!g){ g={hosp:r.hosp, dept:r.dept, doctor:r.doctor, patients:new Set(), qty:0}; groups.set(key,g); }
-    g.patients.add(r.pk);
-    g.qty += r.convQty;
-  }
-  const out=[];
-  for(const g of groups.values()){
-    const n=g.patients.size;
-    out.push({hosp:g.hosp, dept:g.dept, doctor:g.doctor, patients:n, dot: n? g.qty/n:0});
-  }
-  return out;
-}
-
-// 医院级聚合：仅按医疗单位分组(重新去重患者)，供"医院汇总"Tab
-function aggregateHosp(rows){
-  const groups = new Map();
-  for(const r of rows){
-    const key = r.hosp;
-    let g = groups.get(key);
-    if(!g){ g={hosp:r.hosp, patients:new Set(), qty:0, docs:new Set()}; groups.set(key,g); }
-    g.patients.add(r.pk);
-    g.qty += r.convQty;
-    // 医生去重键 = 仅姓名：同一医院内同名医生（即使跨科室如皮肤科/关节科同一人）只计 1 个
-    if(r.doctor) g.docs.add(r.doctor);
-  }
-  const out=[];
-  for(const g of groups.values()){
-    const n=g.patients.size;
-    out.push({hosp:g.hosp, patients:n, dot: n? g.qty/n:0, docCount: g.docs.size});
-  }
-  return out;
-}
-
 // 医生明细合并：同一医院内同名医生（跨科室）合并为一行，取患者数最多的科室作为代表
 // 输入：aggregate() 输出的医生明细行数组
 // 输出：按 (医院+姓名) 合并后的行数组，dept = 患者数最多的那个科室
@@ -2634,7 +2587,8 @@ let HOSP_LIST_SIG = '';      // 医院列表缓存签名(适应症+窗口)
 function buildHospSelect(){
   const catFilter = STATE.cat==='整体'? null : STATE.cat;
   const PPh = getPanePeriod('hosp');   // 下拉列表计数与图表同口径（板块基准区间）
-  const sig = catFilter + '|' + STATE.paneTime.hosp + '|' + (STATE.paneCustom && STATE.paneCustom.hosp ? STATE.paneCustom.hosp.start+'/'+STATE.paneCustom.hosp.end : '');
+  if(!PPh){ HOSP_LIST = []; HOSP_LIST_SIG = ''; }
+  const sig = catFilter + '|' + (STATE.indFilter? [...STATE.indFilter].sort().join(',') : '') + '|' + STATE.paneTime.hosp + '|' + (STATE.paneCustom && STATE.paneCustom.hosp ? STATE.paneCustom.hosp.start+'/'+STATE.paneCustom.hosp.end : '');
   if(sig !== HOSP_LIST_SIG){
     const cnt = new Map();
     for(const r of RAW){
@@ -2890,51 +2844,6 @@ function exportExcel(){
   XLSX.writeFile(wb, fname);
   setStatus('已导出：' + fname + '（12 表 · 焦点vs同类 · 医院份额TOP20 · 各表含占比%）', false);
 }
-
-/* ==================== 18 表参考版工作簿构建（与 _gen_excel.js 同口径，医生姓氏脱敏） ==================== */
-function buildRefWorkbook(ctx){
-  const { focus, products, winTxt, cats, catRowsOf, inWin, api } = ctx;
-  const wb = XLSX.utils.book_new();
-
-  // 1) 说明
-  const info = [
-    ['同类品种临床使用分析洞察报告'],
-    [''],
-    ['生成日期', new Date().toLocaleString('zh-CN')],
-    ['数据来源', '四川区域 DTP 药房销售底表'],
-    ['时间窗口', '回滚12月：' + fmtRange(api)],
-    ['品种口径', products.length + ' 个商品名称，喜达诺两种剂型分开'],
-    ['焦点品种', prodLabel(focus)],
-    [''],
-    ['脱敏方式', '姓氏脱敏（医生保留姓）；医院名称与科室明文'],
-    ['患者去重', 'oneid + 开票抬头 联合唯一'],
-    ['DOT', 'Σ(数量) ÷ 回滚12月去重患者数（oneid+开票抬头）'],
-  ];
-  const wsInfo = XLSX.utils.aoa_to_sheet(info);
-  wsInfo['!cols'] = [{wch:22}, {wch:46}];
-  XLSX.utils.book_append_sheet(wb, wsInfo, '说明');
-
-  // 2) 汇总 section（5 张）
-  const fRows = inWin.filter(r => r.prod === focus);
-  const cRows = inWin.filter(r => r.prod !== focus);
-  XLSX.utils.book_append_sheet(wb, sheetShare('汇总', inWin, api, focus), '汇总-品种份额');
-  XLSX.utils.book_append_sheet(wb, sheetCity('汇总', fRows, cRows, api), '汇总-城市覆盖');
-  XLSX.utils.book_append_sheet(wb, sheetTrend('汇总', inWin, products), '汇总-时间趋势');
-  XLSX.utils.book_append_sheet(wb, sheetProfile('汇总', inWin, focus), '汇总-患者画像');
-  XLSX.utils.book_append_sheet(wb, sheetHospShare('汇总', inWin, api, focus), '汇总-医院份额TOP20');
-
-  // 3) 各大类（各 3 张）
-  for(const c of cats){
-    if(c.key === '汇总') continue;
-    const rows = catRowsOf(c.cat);
-    if(!rows.length) continue;
-    XLSX.utils.book_append_sheet(wb, sheetShare(c.key, rows, api, focus), c.key + '-品种份额');
-    XLSX.utils.book_append_sheet(wb, sheetDoctors(c.key, rows, api, focus), c.key + '-医生明细');
-    XLSX.utils.book_append_sheet(wb, sheetHospShare(c.key, rows, api, focus), c.key + '-医院份额TOP20');
-  }
-  return wb;
-}
-
 /* ==================== 12 表详情版工作簿构建（焦点 vs 同类左右分列；医院份额TOP20 + 各表占比） ==================== */
 function build12SheetWorkbook(share){
   const X = XLSX;
@@ -3077,157 +2986,6 @@ function appendProfileSheet(wb, profile){
   ws['!cols'] = [{wch:12},{wch:10},{wch:10}];
   X.utils.book_append_sheet(wb, ws, '患者画像');
 }
-
-function fmtRange(api){
-  const { start, end } = api.getWindow();
-  const f = d => d ? (d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')) : '';
-  return f(start) + ' ~ ' + f(end);
-}
-
-// 品种份额：品种 | 患者数 | 患者占比% | 销量 | 销量占比% | DOT
-function sheetShare(catKey, rows, api, focus){
-  const a = [['同类品种临床使用份额（回滚12月）'], [], ['品种','患者数','患者占比%','销量','销量占比%','DOT']];
-  const share = api.calcShareAll(rows);
-  const totP = share.reduce((s,x)=>s+x.patients,0) || 1;
-  const totQ = share.reduce((s,x)=>s+x.qty,0) || 1;
-  for(const x of share){
-    a.push([ prodLabel(x.prod), x.patients, pct(x.patients,totP), num(x.qty), pct(x.qty,totQ), dot(x.qty,x.patients) ]);
-  }
-  const ws = XLSX.utils.aoa_to_sheet(a);
-  ws['!cols'] = [{wch:34},{wch:10},{wch:10},{wch:12},{wch:10},{wch:8}];
-  return ws;
-}
-
-// 城市覆盖：城市 | 瑞福患者数 | 同类患者数 | 合计患者数 | 患者占比% | 瑞福销量 | 同类销量
-function sheetCity(catKey, fRows, cRows, api){
-  const a = [['城市覆盖（瑞福 vs 同类）'], [], ['城市','瑞福患者数','同类患者数','合计患者数','患者占比%','瑞福销量','同类销量']];
-  const city = api.calcCity(fRows, cRows);
-  const fQ = qtyByCity(fRows), cQ = qtyByCity(cRows);
-  const totAll = city.reduce((s,x)=>s + x.f + x.c, 0) || 1;
-  for(const x of city){
-    const sum = x.f + x.c;
-    a.push([ x.city, x.f, x.c, sum, pct(sum, totAll), num(fQ.get(x.city)||0), num(cQ.get(x.city)||0) ]);
-  }
-  const ws = XLSX.utils.aoa_to_sheet(a);
-  ws['!cols'] = [{wch:12},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10}];
-  return ws;
-}
-
-// 时间趋势（分品种患者数）：月份 | 各品种
-function sheetTrend(catKey, rows, products){
-  const perProd = new Map();
-  const monthSet = new Set();
-  for(const r of rows){
-    const ym = r.d.getFullYear() + '-' + String(r.d.getMonth()+1).padStart(2,'0');
-    monthSet.add(ym);
-    if(!perProd.has(r.prod)) perProd.set(r.prod, new Map());
-    const mm = perProd.get(r.prod);
-    if(!mm.has(ym)) mm.set(ym, new Set());
-    mm.get(ym).add(r.oneid + '|' + r.invoice);
-  }
-  const months = [...monthSet].sort();
-  const a = [['月度趋势（各品种患者数）'], [], ['月份', ...products]];
-  for(const ym of months){
-    a.push([ ym, ...products.map(p => {
-      const mm = perProd.get(p);
-      return mm && mm.has(ym) ? mm.get(ym).size : 0;
-    })]);
-  }
-  const ws = XLSX.utils.aoa_to_sheet(a);
-  ws['!cols'] = [{wch:10}, ...products.map(()=>({wch:11}))];
-  return ws;
-}
-
-// 患者画像（瑞福 vs 同类）：性别 + 年龄
-function sheetProfile(catKey, rows, focus){
-  const a = [['患者画像（瑞福 vs 同类）'], []];
-  const pat = new Map();
-  for(const r of rows){
-    const pk = r.oneid + '|' + r.invoice;
-    const g = (r.prod === focus) ? 'focus' : 'comp';
-    let rec = pat.get(pk);
-    if(!rec){ rec = {group:g, age:r.age, sex:r.sex}; pat.set(pk, rec); }
-    else { if(rec.group!=='focus' && g==='focus') rec.group='focus'; if(!rec.age && r.age) rec.age=r.age; if(!rec.sex && r.sex) rec.sex=r.sex; }
-  }
-  const fSex={男:0,女:0,未知:0}, cSex={男:0,女:0,未知:0};
-  const buckets=[['<18',x=>x<18],['18-29',x=>x>=18&&x<30],['30-39',x=>x<40],['40-49',x=>x<50],['50-59',x=>x<60],['60-69',x=>x<70],['70+',x=>x>=70]];
-  const fAge=new Array(buckets.length).fill(0), cAge=new Array(buckets.length).fill(0);
-  for(const rec of pat.values()){
-    let v=NaN; if(rec.age!==''){ const n=parseFloat(rec.age); if(!isNaN(n)) v=n; }
-    const arr = rec.group==='focus' ? fAge : cAge;
-    if(!isNaN(v)){ for(let i=0;i<buckets.length;i++){ if(buckets[i][1](v)){ arr[i]++; break; } } }
-    const sx = rec.group==='focus' ? fSex : cSex;
-    const s = (rec.sex==='男'||rec.sex==='女') ? rec.sex : '未知';
-    sx[s]++;
-  }
-  const fST = fSex.男+fSex.女+fSex.未知 || 1, cST = cSex.男+cSex.女+cSex.未知 || 1;
-  const fAT = fAge.reduce((x,y)=>x+y,0)||1, cAT = cAge.reduce((x,y)=>x+y,0)||1;
-  a.push(['性别分布']);
-  a.push(['性别','瑞福患者数','瑞福占比%','同类患者数','同类占比%']);
-  for(const k of ['男','女','未知']){
-    a.push([ k, fSex[k], pct(fSex[k],fST), cSex[k], pct(cSex[k],cST) ]);
-  }
-  a.push([]);
-  a.push(['年龄分布']);
-  a.push(['年龄段','瑞福患者数','瑞福占比%','同类患者数','同类占比%']);
-  for(let i=0;i<buckets.length;i++){
-    a.push([ buckets[i][0], fAge[i], pct(fAge[i],fAT), cAge[i], pct(cAge[i],cAT) ]);
-  }
-  const ws = XLSX.utils.aoa_to_sheet(a);
-  ws['!cols'] = [{wch:12},{wch:10},{wch:9},{wch:10},{wch:9}];
-  return ws;
-}
-
-// 医生明细（焦点品种）：医生(脱敏) | 主导医院 | 主导科室 | 患者数 | 患者占比% | 销量 | 销量占比% | DOT
-function sheetDoctors(catKey, rows, api, focus){
-  const fRows = rows.filter(r => r.prod === focus);
-  const a = [[catKey + ' · 瑞福处方医生明细'], [], ['医生(脱敏)','主导医院','主导科室','患者数','患者占比%','销量','销量占比%','DOT']];
-  const docs = api.mergeDoctorsByHospital(api.aggregate(fRows));
-  const qtyMap = new Map();
-  for(const r of fRows){ const k = r.hosp + '§' + r.doctor; qtyMap.set(k, (qtyMap.get(k)||0) + r.convQty); }
-  docs.forEach(d => { d.qty = qtyMap.get(d.hosp + '§' + d.doctor) || 0; });
-  const masked = api.anonymize(docs, '姓');
-  masked.sort((x,y) => y.patients - x.patients);
-  const totP = masked.reduce((s,x)=>s+x.patients,0) || 1;
-  const totQ = masked.reduce((s,x)=>s+x.qty,0) || 1;
-  for(const d of masked){
-    a.push([ d.docDisp, d.hosp, d.dept, d.patients, pct(d.patients,totP), num(d.qty), pct(d.qty,totQ), dot(d.qty,d.patients) ]);
-  }
-  const ws = XLSX.utils.aoa_to_sheet(a);
-  ws['!cols'] = [{wch:14},{wch:24},{wch:12},{wch:8},{wch:9},{wch:9},{wch:9},{wch:7}];
-  return ws;
-}
-
-// 医院份额 TOP20（瑞福 vs 同类）：医院 | 总患者数 | 总占比% | 瑞福患者数 | 瑞福份额% | 同类患者数 | 同类份额% | 瑞福销量 | 总销量 | 瑞福销量占比%
-function sheetHospShare(catKey, rows, api, focus){
-  const a = [[catKey + ' · 医院份额（瑞福 vs 同类，总患者数 TOP20）'], [], ['医院','总患者数','总占比%','瑞福患者数','瑞福份额%','同类患者数','同类份额%','瑞福销量','总销量','瑞福销量占比%']];
-  const byHosp = new Map();
-  for(const r of rows){
-    const h = r.hosp;
-    let g = byHosp.get(h);
-    if(!g){ g = {hosp:h, all:new Set(), focus:new Set(), qtyAll:0, qtyFocus:0}; byHosp.set(h, g); }
-    g.all.add(r.oneid + '|' + r.invoice);
-    g.qtyAll += r.convQty;
-    if(r.prod === focus){ g.focus.add(r.oneid + '|' + r.invoice); g.qtyFocus += r.convQty; }
-  }
-  const list = [...byHosp.values()].sort((x,y) => y.all.size - x.all.size).slice(0, 20);
-  const grandTotal = [...byHosp.values()].reduce((s,g) => s + g.all.size, 0) || 1;
-  for(const g of list){
-    const total = g.all.size;
-    const fP = g.focus.size;
-    const cP = total - fP;
-    const fQ = g.qtyFocus, totalQ = g.qtyAll;
-    a.push([
-      g.hosp, total, pct(total, grandTotal),
-      fP, pct(fP, total), cP, pct(cP, total),
-      num(fQ), num(totalQ), pct(fQ, totalQ)
-    ]);
-  }
-  const ws = XLSX.utils.aoa_to_sheet(a);
-  ws['!cols'] = [{wch:26},{wch:9},{wch:8},{wch:10},{wch:8},{wch:10},{wch:8},{wch:9},{wch:9},{wch:11}];
-  return ws;
-}
-
 /* ---------------- 小工具 ---------------- */
 function pct(n, d){ return d > 0 ? (n/d*100).toFixed(1) + '%' : '0.0%'; }
 function dot(q, p){ return p > 0 ? +(q/p).toFixed(2) : 0; }
@@ -4185,7 +3943,8 @@ function initPaneTimeSels(){
       STATE.paneCustom[pane] = STATE.paneCustom[pane] || {};
       if(inp.classList.contains('pane-cs')) STATE.paneCustom[pane].start = inp.value;
       else STATE.paneCustom[pane].end = inp.value;
-      renderCharts();
+      if(pane==='hb') renderHB();
+      else renderCharts();
     });
   });
 }
@@ -4575,7 +4334,7 @@ document.getElementById('trendMetric').addEventListener('change', e=>{
     renderHospList(input.value);
   });
   list.addEventListener('mousedown', e=>{
-    if(e.target.classList && e.target.classList.contains('hosp-multi')) return;   // 复选框走 change 事件（多选）
+    if(e.target.closest && e.target.closest('.hosp-chk')) return;   // 复选框及其热区走 change 事件（多选），误触不清空多选
     const item = e.target.closest('.hosp-item');
     if(!item) return;
     e.preventDefault();
