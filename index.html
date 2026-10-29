@@ -144,6 +144,25 @@
   .chart-prod-filter label input{margin:0;cursor:pointer;accent-color:var(--brand);}
   .chart-prod-filter .prod-all{font-weight:600;color:var(--brand);border-right:1px solid var(--line);padding-right:8px;margin-right:4px;}
   .chart-prod-filter .prod-focus{color:#8b87a0;background:#f0eef7;border-right:1px solid var(--line);padding-right:8px;margin-right:4px;cursor:default;}
+  .qs-modes{display:flex;gap:8px;margin-bottom:8px;}
+  .qs-mode{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;color:var(--muted);}
+  .qs-mode.active{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600;}
+  .qs-tip{font-size:12px;color:var(--muted);margin:6px 0;}
+  .qs-search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px;margin:6px 0 8px;box-sizing:border-box;}
+  .qs-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+  .qs-chip{border:1px solid var(--line);background:#f8faff;border-radius:20px;padding:3px 12px;font-size:12px;cursor:pointer;color:var(--muted);}
+  .qs-chip.active{background:#e7ecfb;border-color:var(--brand);color:var(--brand);font-weight:600;}
+  .qs-list{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px;}
+  .qs-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #f0f2f8;font-size:13px;}
+  .qs-row:hover{background:#f6f8fc;}
+  .qs-focus-row{background:#f0eef7;color:#6f6b85;cursor:default;}
+  .qs-click{cursor:pointer;}
+  .qs-badge{background:var(--brand);color:#fff;border-radius:4px;padding:1px 6px;font-size:11px;flex-shrink:0;}
+  .qs-name{flex:1;}
+  .qs-pat{color:var(--muted);font-size:12px;white-space:nowrap;}
+  .qs-tag{color:#a5a1b8;font-size:11px;white-space:nowrap;}
+  .qs-empty{padding:18px;text-align:center;color:var(--muted);font-size:12.5px;}
+  .qs-link{color:var(--brand);cursor:pointer;font-weight:600;}
   .chart-box{position:relative;width:100%;height:360px;}
   .chart-meta{font-size:12px;color:var(--muted);margin-top:8px;}
   .chart-note{font-size:11.5px;color:var(--muted);margin-top:6px;background:#f8faff;
@@ -164,6 +183,12 @@
   .hosp-empty{padding:10px;color:var(--muted);font-size:12px;text-align:center;}
   .hosp-hb-note{font-size:12px;color:#8a6d3b;background:#fff8e1;border:1px solid #ffe1a8;border-radius:6px;padding:6px 10px;margin:10px 0 6px;}
   .hosp-item mark{background:#fff3a0;color:inherit;padding:0 1px;border-radius:2px;}
+  .hosp-selinfo{font-size:12px;color:var(--muted);margin-top:5px;}
+  .hosp-selinfo b{color:var(--ink);}
+  .hosp-item .hosp-chk{flex-shrink:0;display:flex;align-items:center;}
+  .hosp-item input.hosp-multi{margin:0;cursor:pointer;accent-color:var(--brand);}
+  .hosp-sum{margin-bottom:8px;padding:8px 12px;background:#f2f0fa;border-left:3px solid #8b87a0;border-radius:4px;font-size:13px;}
+  .hosp-sum b{color:var(--brand);}
   .mini-table{width:100%;font-size:12px;margin-top:10px;overflow-x:auto;}
   .mini-table table{min-width:100%;border-collapse:collapse;}
   .mini-table th,.mini-table td{padding:5px 8px;border-bottom:1px solid var(--line);}
@@ -406,7 +431,7 @@
         <div class="ctl" style="margin-top:0;">
           <label>右表同类品种（同类合并，可多选；默认含除焦点外全部品种）</label>
           <div class="comp-ops">
-            <a id="compAll">全选</a> · <a id="compNone">清空</a> · <a id="compInv">反选</a>
+            <a id="compAll">全选</a> · <a id="compNone">清空</a> · <a id="compInv">反选</a> · <a id="qsOpen">🔍 快速选择</a>
           </div>
           <div class="comp-list" id="compList"></div>
         </div>
@@ -575,6 +600,7 @@
         <div class="hosp-search">
           <input type="text" id="hospSearch" placeholder="输入医院名搜索（如「华西」「市一」）" autocomplete="off">
           <div class="hosp-list hidden" id="hospList"></div>
+          <div class="hosp-selinfo" id="hospSelInfo"></div>
         </div>
       </div>
       <div class="chart-box"><canvas id="chartHosp"></canvas></div>
@@ -587,6 +613,31 @@
 </div>
 
 <!-- 导出分享版 · 内容选项弹窗 -->
+<div class="modal-mask hidden" id="quickSelModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>品种快速选择</h3>
+      <button class="modal-x" id="qsClose" title="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="qs-modes">
+        <button class="qs-mode active" data-mode="multi" type="button">多选 · 选同类品种</button>
+        <button class="qs-mode" data-mode="single" type="button">单选 · 设焦点品种</button>
+      </div>
+      <div class="qs-tip" id="qsTip"></div>
+      <input id="qsSearch" class="qs-search" type="text" placeholder="搜索品种名（支持脱敏前/后名称）…">
+      <div class="qs-chips" id="qsChips"></div>
+      <div class="qs-list" id="qsList"></div>
+    </div>
+    <div class="modal-foot">
+      <span class="meta" id="qsMeta"></span>
+      <span style="flex:1"></span>
+      <a id="qsAll" class="qs-link">全选(当前筛选)</a> · <a id="qsNone" class="qs-link">清空(当前筛选)</a>
+      <button class="btn ghost" id="qsCancel" type="button">取消</button>
+      <button class="btn" id="qsOk" type="button">确定</button>
+    </div>
+  </div>
+</div>
 <div class="modal-mask hidden" id="shareModal">
   <div class="modal">
     <div class="modal-head">
@@ -666,7 +717,8 @@ const STATE = {
   customEnd: null,
   chartTab: 'share',
   trendMetric: 'patients',
-  lockHospital: null,   // 医院份额视图锁定的医院
+  lockHospital: null,   // 医院份额视图锁定的医院（单选主院，兼容保留）
+  lockHospitals: new Set(),   // 医院份额多选锁定集合（至少一家；与 lockHospital 同步）
   chartProds: null,    // 多维分析品种筛选：null=全选，否则为 Set(选中品种名)
   viewMode: { left: 'doctor', right: 'doctor' },  // 每表视图: doctor=医生明细 / hospital=医院汇总
 };
@@ -2481,7 +2533,20 @@ function renderProfile(){
   document.getElementById('sexTable').innerHTML = sexHtml;
 }
 
-/* 医院份额: 锁定单家医院，看各品种患者份额占比 */
+/* 医院份额: 锁定医院（支持多选合并），看各品种患者份额占比 */
+function qsHospSet(){
+  return (STATE.lockHospitals && STATE.lockHospitals.size) ? STATE.lockHospitals
+       : (STATE.lockHospital ? new Set([STATE.lockHospital]) : new Set());
+}
+function renderHospSelInfo(){
+  const el = document.getElementById('hospSelInfo');
+  if(!el) return;
+  const arr = [...qsHospSet()];
+  if(!arr.length){ el.innerHTML=''; return; }
+  el.innerHTML = arr.length===1
+    ? '当前锁定：<b>'+esc(arr[0])+'</b>'
+    : ('已锁定 <b>'+arr.length+'</b> 家医院（合并去重口径）：'+esc(arr.slice(0,3).join('、'))+(arr.length>3?' 等':''));
+}
 let HOSP_LIST = [];          // 当前口径下的医院列表(按患者数降序)
 let HOSP_LIST_SIG = '';      // 医院列表缓存签名(适应症+窗口)
 function buildHospSelect(){
@@ -2507,10 +2572,18 @@ function buildHospSelect(){
   if(!HOSP_LIST.some(o=>o.hosp === prev)){
     STATE.lockHospital = HOSP_LIST.length? HOSP_LIST[0].hosp : '';
   }
+  // 多选集合校验：剔除不在当前口径列表的医院；空则回退单选
+  if(STATE.lockHospitals && STATE.lockHospitals.size){
+    const valid = [...STATE.lockHospitals].filter(h => HOSP_LIST.some(o=>o.hosp===h));
+    STATE.lockHospitals = new Set(valid.length? valid : (STATE.lockHospital? [STATE.lockHospital] : []));
+  } else {
+    STATE.lockHospitals = new Set(STATE.lockHospital? [STATE.lockHospital] : []);
+  }
   if(input){
     input.value = STATE.lockHospital || '';
   }
   renderHospList('');   // 默认不筛选
+  renderHospSelInfo();
 }
 
 /* 渲染医院搜索下拉（filter 为空显示全部） */
@@ -2527,30 +2600,54 @@ function renderHospList(filter){
     const MAX = 200;
     const shown = items.slice(0, MAX);
     const re = q ? new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi') : null;
+    const curSet = qsHospSet();
     list.innerHTML = shown.map(o=>{
-      const isCur = o.hosp === STATE.lockHospital;
+      const isCur = curSet.has(o.hosp);
       const nameHtml = re ? esc(o.hosp).replace(re,'<mark>$1</mark>') : esc(o.hosp);
       return `<div class="hosp-item${isCur?' cur':''}" data-hosp="${esc(o.hosp)}">`+
+               `<span class="hosp-chk"><input type="checkbox" class="hosp-multi" data-hosp="${esc(o.hosp)}"${isCur?' checked':''}></span>`+
                `<span>${nameHtml}</span>`+
                `<span class="hosp-pat">${o.patients.toLocaleString()} 人</span>`+
              `</div>`;
     }).join('') + (items.length>MAX ? `<div class="hosp-empty">仅显示前 ${MAX} 条，共 ${items.length} 条</div>` : '');
   }
   list.classList.remove('hidden');
+  // 多选复选框：勾选/取消只改动锁定集合，列表保持展开，图表即时重算
+  list.querySelectorAll('input.hosp-multi').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const h = cb.getAttribute('data-hosp');
+      if(cb.checked){ STATE.lockHospitals.add(h); STATE.lockHospital = h; }
+      else {
+        STATE.lockHospitals.delete(h);
+        if(!STATE.lockHospitals.size){ STATE.lockHospitals.add(h); cb.checked = true; }  // 至少保留一家
+        else if(STATE.lockHospital === h){ STATE.lockHospital = [...STATE.lockHospitals][0]; }
+      }
+      list.querySelectorAll('.hosp-item').forEach(it=>{
+        it.classList.toggle('cur', STATE.lockHospitals.has(it.getAttribute('data-hosp')));
+      });
+      renderHospSelInfo();
+      drawHospChart();
+    });
+  });
 }
 
 /* 选中医院 */
 function selectHosp(hosp){
   STATE.lockHospital = hosp;
+  STATE.lockHospitals = new Set([hosp]);
   const input = document.getElementById('hospSearch');
   if(input) input.value = hosp;
   const list = document.getElementById('hospList');
   if(list) list.classList.add('hidden');
+  renderHospSelInfo();
   drawHospChart();
 }
 function drawHospChart(){
-  const hosp = STATE.lockHospital;
-  if(!hosp) return;
+  const hospSet = qsHospSet();
+  if(!hospSet.size) return;
+  const hospNames = [...hospSet];
+  const hospTitle = hospNames.length===1 ? hospNames[0]
+    : ('已选'+hospNames.length+'家医院合并（'+hospNames.slice(0,2).join('、')+(hospNames.length>2?'等':'')+'）');
   const catFilter = STATE.cat==='整体'? null : STATE.cat;
   const w = getWindow();
   const patMap = new Map(), qtyMap = new Map();   // prod -> 去重患者集 / 销量
@@ -2558,7 +2655,7 @@ function drawHospChart(){
     if(r.d < w.start || r.d > w.end) continue;
     if(catFilter && r.cat !== catFilter) continue;
     if(STATE.indFilter && !STATE.indFilter.has(r.ind)) continue;
-    if(r.hosp !== hosp) continue;
+    if(!hospSet.has(r.hosp)) continue;
     let s = patMap.get(r.prod);
     if(!s){ s = new Set(); patMap.set(r.prod, s); }
     s.add(r.oneid + '|' + r.invoice);
@@ -2573,7 +2670,7 @@ function drawHospChart(){
       if(r.d < w.start || r.d > w.end) continue;
       if(catFilter && r.cat !== catFilter) continue;
       if(STATE.indFilter && !STATE.indFilter.has(r.ind)) continue;
-      if(r.hosp !== hosp) continue;
+      if(!hospSet.has(r.hosp)) continue;
       const ym = r.d.getFullYear()+'-'+String(r.d.getMonth()+1).padStart(2,'0');
       if(ym!==hbM && ym!==prevYm) continue;
       const isCur = ym===hbM;
@@ -2612,10 +2709,22 @@ function drawHospChart(){
           const pct = tot? (it.patients/tot*100).toFixed(1) : 0;
           return `患者数 ${it.patients.toLocaleString()} (${pct}%) · 销量 ${it.qty.toLocaleString()}`;
         }}},
-        title:{ display:true, text:`${hosp} · 各品种去重患者数（${hbM} 本月）`+(hbTxt2?' · 环比 '+hbTxt2:'') } },
+        title:{ display:true, text:`${hospTitle} · 各品种去重患者数（${hbM} 本月）`+(hbTxt2?' · 环比 '+hbTxt2:'') } },
       scales:{ x:{ title:{display:true,text:'去重患者数'} },
                y:{ ticks:{ autoSkip:false, font:{size:11} } } } }
   });
+  // 汇总条：竞品患者数总和（基准月；品种范围与图表一致，多院合并去重）
+  const sumSrc = hbM ? currPat : patMap;
+  const sumMonthTxt = hbM ? (hbM+' 本月') : '当前窗口';
+  const focusP = (sumSrc.get(STATE.focus)||new Set()).size;
+  let compSum=0, compCnt=0;
+  for(const [p,s] of sumSrc){
+    if(filterProds && !filterProds.has(p)) continue;
+    if(p===STATE.focus) continue;
+    compSum += s.size; compCnt++;
+  }
+  const sumTot = (focusP + compSum) || 1;
+  const sumHtml = `<div class="hosp-sum">📌 ${esc(hospTitle)} · ${sumMonthTxt}汇总：<b>竞品患者数总和 ${compSum.toLocaleString()}</b>（${compCnt} 个竞品品种）· 焦点品种 ${focusP.toLocaleString()} · 焦点占比 ${(focusP/sumTot*100).toFixed(1)}%</div>`;
   // 明细表：口径固定为 STATE.hbMonth（底表最新月）vs 上一月，与⑥分析结果保持一致
   const hbWinTxt = hbM && prevYm ? `${prevYm}（上月）vs ${hbM}（底表最新月）` : '（无环比数据）';
   const currTotPat = [...currPat.values()].reduce((a,s)=>a+s.size,0)||1;
@@ -2625,7 +2734,7 @@ function drawHospChart(){
     const cq = currQty.get(prod)||0;
     return { prod, patients: cp, qty: cq, isFocus: prod===STATE.focus };
   }).filter(x=>x.patients>0 || x.qty>0).sort((a,b)=>b.patients-a.patients);
-  let html = `<div class="hosp-hb-note">明细表口径：${hbWinTxt}（固定为底表最新月，不随顶部时间窗口变化）</div>`+
+  let html = sumHtml + `<div class="hosp-hb-note">明细表口径：${hbWinTxt}（固定为底表最新月，不随顶部时间窗口变化）</div>`+
              '<table><thead><tr><th>品种</th><th class="num">患者数</th><th class="num">患者数环比</th><th class="num">患者占比</th><th class="num">患者占比环比</th><th class="num">销量(数量)</th><th class="num">销量环比</th></tr></thead><tbody>';
   hbItems.forEach(it=>{
     const cls = it.isFocus? 'class="c-focus"':'';
@@ -3419,6 +3528,25 @@ function renderShareDoc(share){
   .chart-prod-filter label input{margin:0;cursor:pointer;accent-color:var(--brand);}
   .chart-prod-filter .prod-all{font-weight:600;color:var(--brand);border-right:1px solid var(--line);padding-right:8px;margin-right:4px;}
   .chart-prod-filter .prod-focus{color:#8b87a0;background:#f0eef7;border-right:1px solid var(--line);padding-right:8px;margin-right:4px;cursor:default;}
+  .qs-modes{display:flex;gap:8px;margin-bottom:8px;}
+  .qs-mode{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;color:var(--muted);}
+  .qs-mode.active{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600;}
+  .qs-tip{font-size:12px;color:var(--muted);margin:6px 0;}
+  .qs-search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px;margin:6px 0 8px;box-sizing:border-box;}
+  .qs-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+  .qs-chip{border:1px solid var(--line);background:#f8faff;border-radius:20px;padding:3px 12px;font-size:12px;cursor:pointer;color:var(--muted);}
+  .qs-chip.active{background:#e7ecfb;border-color:var(--brand);color:var(--brand);font-weight:600;}
+  .qs-list{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px;}
+  .qs-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #f0f2f8;font-size:13px;}
+  .qs-row:hover{background:#f6f8fc;}
+  .qs-focus-row{background:#f0eef7;color:#6f6b85;cursor:default;}
+  .qs-click{cursor:pointer;}
+  .qs-badge{background:var(--brand);color:#fff;border-radius:4px;padding:1px 6px;font-size:11px;flex-shrink:0;}
+  .qs-name{flex:1;}
+  .qs-pat{color:var(--muted);font-size:12px;white-space:nowrap;}
+  .qs-tag{color:#a5a1b8;font-size:11px;white-space:nowrap;}
+  .qs-empty{padding:18px;text-align:center;color:var(--muted);font-size:12.5px;}
+  .qs-link{color:var(--brand);cursor:pointer;font-weight:600;}
   select{border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:13px;color:var(--ink);background:#fff;min-width:150px;}
   h2{font-size:16px;margin:22px 0 6px;color:var(--brand);border-left:4px solid var(--brand);padding-left:10px;}
   .side-title{font-size:13px;color:#33405a;margin-bottom:8px;font-weight:600;}
@@ -4147,6 +4275,103 @@ document.querySelectorAll('.vtab').forEach(b=>{
   });
 });
 
+/* ============ ④ 品种快速选择窗口（搜索/大类筛选/单选设焦点/多选选同类） ============ */
+const QS = { mode:'multi', kw:'', chip:'全部', sel:new Set(), pat:new Map(), prodCats:new Map(), chips:[] };
+function qsComputeProdCats(){
+  const m=new Map();
+  for(const r of RAW){ if(!r.prod) continue; let mm=m.get(r.prod); if(!mm){mm=new Map(); m.set(r.prod,mm);} mm.set(r.cat,(mm.get(r.cat)||0)+1); }
+  const out=new Map();
+  for(const [p,mm] of m){ let best='',bn=-1; for(const [c,n] of mm){ if(n>bn){bn=n;best=c;} } out.set(p,best); }
+  return out;
+}
+function qsComputePatients(){
+  const catFilter = STATE.cat==='整体'? null : STATE.cat;
+  const rows = rowsInScope(new Set(PRODUCTS), catFilter);
+  const pat=new Map();
+  for(const r of rows){ let s=pat.get(r.prod); if(!s){s=new Set(); pat.set(r.prod,s);} s.add(r.pk); }
+  return pat;
+}
+function qsOpenModal(){
+  QS.mode='multi'; QS.kw=''; QS.chip='全部';
+  QS.sel = new Set([...STATE.competitors]);
+  QS.prodCats = qsComputeProdCats();
+  QS.pat = qsComputePatients();
+  const order = (typeof presentCats==='function'? presentCats().slice(1) : []);
+  const catsPresent = new Set([...QS.prodCats.values()]);
+  QS.chips = ['全部'];
+  for(const c of order){ if(catsPresent.has(c) && !QS.chips.includes(c)) QS.chips.push(c); }
+  for(const c of catsPresent){ if(!QS.chips.includes(c)) QS.chips.push(c); }
+  document.getElementById('qsSearch').value='';
+  document.getElementById('quickSelModal').classList.remove('hidden');
+  qsSyncModeUI(); qsRenderChips(); qsRenderList();
+}
+function qsVisible(){
+  const kw=QS.kw.trim();
+  return PRODUCTS.filter(p=>{
+    if(p===STATE.focus) return false;
+    if(QS.chip!=='全部' && QS.prodCats.get(p)!==QS.chip) return false;
+    if(kw && p.indexOf(kw)<0 && String(prodLabel(p,STATE)).indexOf(kw)<0) return false;
+    return true;
+  });
+}
+function qsRenderChips(){
+  const el=document.getElementById('qsChips');
+  el.innerHTML='';
+  for(const c of QS.chips){
+    const b=document.createElement('button');
+    b.className='qs-chip'+(QS.chip===c?' active':'');
+    b.type='button'; b.textContent=c;
+    b.addEventListener('click',()=>{ QS.chip=c; qsRenderChips(); qsRenderList(); });
+    el.appendChild(b);
+  }
+}
+function qsRenderList(){
+  const list=document.getElementById('qsList');
+  const vis=qsVisible();
+  let html='<div class="qs-row qs-focus-row"><span class="qs-badge">焦点</span><span class="qs-name">'+esc(prodLabel(STATE.focus,STATE))+'</span><span class="qs-pat">'+(QS.pat.get(STATE.focus)||0).toLocaleString()+' 人</span><span class="qs-tag">左表恒选</span></div>';
+  if(!vis.length) html+='<div class="qs-empty">无匹配品种</div>';
+  for(const p of vis){
+    const n=(QS.pat.get(p)||0).toLocaleString();
+    if(QS.mode==='multi'){
+      html+='<label class="qs-row"><input type="checkbox" data-p="'+esc(p)+'"'+(QS.sel.has(p)?' checked':'')+'><span class="qs-name">'+esc(prodLabel(p,STATE))+'</span><span class="qs-pat">'+n+' 人</span><span class="qs-tag">'+esc(QS.prodCats.get(p)||'')+'</span></label>';
+    } else {
+      html+='<div class="qs-row qs-click" data-p="'+esc(p)+'"><span class="qs-name">'+esc(prodLabel(p,STATE))+'</span><span class="qs-pat">'+n+' 人</span><span class="qs-tag">'+esc(QS.prodCats.get(p)||'')+'</span></div>';
+    }
+  }
+  list.innerHTML=html;
+  document.getElementById('qsMeta').textContent = QS.mode==='multi' ? ('已选同类 '+QS.sel.size+' 个') : ('当前焦点：'+prodLabel(STATE.focus,STATE));
+  if(QS.mode==='multi'){
+    list.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
+      cb.addEventListener('change',()=>{ cb.checked?QS.sel.add(cb.getAttribute('data-p')):QS.sel.delete(cb.getAttribute('data-p')); document.getElementById('qsMeta').textContent='已选同类 '+QS.sel.size+' 个'; });
+    });
+  } else {
+    list.querySelectorAll('.qs-click').forEach(row=>{
+      row.addEventListener('click',()=>{ qsApplySingle(row.getAttribute('data-p')); });
+    });
+  }
+}
+function qsSyncModeUI(){
+  document.querySelectorAll('.qs-mode').forEach(b=>{ b.classList.toggle('active', b.getAttribute('data-mode')===QS.mode); });
+  const multi = QS.mode==='multi';
+  ['qsAll','qsNone','qsOk'].forEach(id=>{ document.getElementById(id).style.display = multi?'':'none'; });
+  document.getElementById('qsTip').textContent = multi
+    ? '多选：勾选右表要包含的同类品种；焦点品种恒在左表，不在下方列表。'
+    : '单选：点击任一品种即设为左表焦点，右表同类自动更新为其余全部品种。';
+}
+function qsApplySingle(p){
+  document.getElementById('quickSelModal').classList.add('hidden');
+  if(p!==STATE.focus) setFocus(p);
+}
+function qsApplyMulti(){
+  buildCompList(STATE.focus);
+  STATE.competitors = new Set([...QS.sel].filter(p=>p!==STATE.focus));
+  document.querySelectorAll('#compList input').forEach(cb=>{ cb.checked = STATE.competitors.has(cb.value); });
+  STATE.chartProds = null;
+  buildChartProdFilter();
+  document.getElementById('quickSelModal').classList.add('hidden');
+  recalcAsync();
+}
+
 document.getElementById('compAll').addEventListener('click', ()=>{
   document.querySelectorAll('#compList input').forEach(cb=>{cb.checked=true; STATE.competitors.add(cb.value);}); STATE.chartProds=null; buildChartProdFilter(); recalcAsync();
 });
@@ -4160,6 +4385,19 @@ document.getElementById('compNone').addEventListener('click', ()=>{
 document.getElementById('compInv').addEventListener('click', ()=>{
   document.querySelectorAll('#compList input').forEach(cb=>{cb.checked=!cb.checked; cb.checked?STATE.competitors.add(cb.value):STATE.competitors.delete(cb.value);}); STATE.chartProds=null; buildChartProdFilter(); recalcAsync();
 });
+
+/* 快速选择窗口事件 */
+document.getElementById('qsOpen').addEventListener('click', qsOpenModal);
+document.getElementById('qsClose').addEventListener('click', ()=>{ document.getElementById('quickSelModal').classList.add('hidden'); });
+document.getElementById('qsCancel').addEventListener('click', ()=>{ document.getElementById('quickSelModal').classList.add('hidden'); });
+document.getElementById('qsSearch').addEventListener('input', e=>{ QS.kw=e.target.value; qsRenderList(); });
+document.getElementById('qsAll').addEventListener('click', ()=>{ qsVisible().forEach(p=>QS.sel.add(p)); qsRenderList(); });
+document.getElementById('qsNone').addEventListener('click', ()=>{ qsVisible().forEach(p=>QS.sel.delete(p)); qsRenderList(); });
+document.getElementById('qsOk').addEventListener('click', qsApplyMulti);
+document.querySelectorAll('.qs-mode').forEach(b=>{
+  b.addEventListener('click', ()=>{ QS.mode=b.getAttribute('data-mode'); qsSyncModeUI(); qsRenderList(); });
+});
+
 
 /* 多维分析 tab 切换 */
 document.querySelectorAll('#chartTabs .chart-tab').forEach(t=>{
@@ -4211,6 +4449,7 @@ document.getElementById('trendMetric').addEventListener('change', e=>{
     renderHospList(input.value);
   });
   list.addEventListener('mousedown', e=>{
+    if(e.target.classList && e.target.classList.contains('hosp-multi')) return;   // 复选框走 change 事件（多选）
     const item = e.target.closest('.hosp-item');
     if(!item) return;
     e.preventDefault();
