@@ -692,6 +692,10 @@
         <span class="mx-flab">适应症大类</span>
         <div class="mx-radios" id="mxCatRadios"></div>
       </div>
+      <div class="mx-frow">
+        <span class="mx-flab">指标</span>
+        <div class="mx-radios" id="mxMetricRadios"></div>
+      </div>
       <div class="mx-frow hidden" id="mxProdRow">
         <span class="mx-flab">药品筛选</span>
         <div class="mx-mode" id="mxProdMode">
@@ -821,6 +825,7 @@ const STATE = {
   chartProds: null,    // 多维分析品种筛选：null=全选，否则为 Set(选中品种名)
   viewMode: { left: 'doctor', right: 'doctor' },  // 每表视图: doctor=医生明细 / hospital=医院汇总
   mxDim: 'prod',      // ⑧盘点：分类项维度 prod=药品 / city=城市 / hosp=医院
+  mxMetric: 'pats',   // ⑧盘点：显示指标 pats=患者人数 / qty=销售支数（2026-10-30 用户拍板，不再同屏两行）
   mxCat: '整体',      // ⑧盘点：适应症大类（面板内独立，不联动左/右表）
   mxProds: null,      // ⑧盘点：药品筛选 null=全部药品；Set=选中药品名（空 Set=全不选）
   mxProdMode: 'multi', // ⑧盘点：药品筛选模式 multi=多选 / single=单选（单选时仅 Set 首项生效）
@@ -2495,6 +2500,21 @@ function buildMxCatRadios(){
   });
 }
 
+// 指标单选（患者人数 / 销售支数；2026-10-30 用户拍板：界面只显示所选指标一行）
+function buildMxMetricRadios(){
+  const box = document.getElementById('mxMetricRadios');
+  if(!box) return;
+  [['pats','患者人数'],['qty','销售支数']].forEach(kv=>{
+    const lab = document.createElement('label');
+    lab.className = 'mx-radio' + (STATE.mxMetric===kv[0] ? ' on' : '');
+    const cb = document.createElement('input');
+    cb.type='radio'; cb.name='mxMetric'; cb.value=kv[0]; cb.checked=(STATE.mxMetric===kv[0]);
+    lab.appendChild(cb);
+    lab.appendChild(document.createTextNode(kv[1]));
+    box.appendChild(lab);
+  });
+}
+
 /* 药品筛选器：药片组（多选）+ 模式切换（多选/单选）
    - 药片来源：基础行集涉及的药品（随维度/大类/窗口联动）
    - 默认 null = 全部药品（药片全部高亮，合计=全体）
@@ -2575,6 +2595,7 @@ function renderMxSummary(){
   card.classList.remove('hidden');
   buildMxDimRadios();
   buildMxCatRadios();
+  buildMxMetricRadios();
   buildMxProdChips();
   const m = buildMxSummary();
   const exBtn = document.getElementById('mxExportBtn');
@@ -2595,7 +2616,7 @@ function renderMxSummary(){
   const winTxt = getWinTxt();
   const fmtN = n => Math.round(n).toLocaleString();
   // 表头：指标 + 各分类项 + 合计
-  let head = '<th class="mx-metric">'+(m.split?'药品 · 指标':'指标')+'</th>';
+  let head = '<th class="mx-metric">'+(m.split?'药品':'指标')+'</th>';
   for(const it of m.items){
     const label = (STATE.mxDim==='prod') ? prodLabel(it.key) : it.key;
     const foc = (STATE.mxDim==='prod' && it.key===STATE.focus) ? ' mx-focus' : '';
@@ -2625,14 +2646,16 @@ function renderMxSummary(){
       }
       const tp = m.prodTotals.get(pr.prod);
       const tpn = tp ? tp.pats.size : 0, tqn = tp ? tp.qty : 0;
-      bodyRows += '<tr><td class="mx-metric'+pfoc+'">'+esc(plabel)+' · 去重患者数</td>'+pr1+'<td class="num'+pfoc+'">'+(tpn?tpn:'')+'</td></tr>';
-      bodyRows += '<tr><td class="mx-metric'+pfoc+'">'+esc(plabel)+' · 销售支数</td>'+qr1+'<td class="num'+pfoc+'">'+fmtN(tqn)+'</td></tr>';
+      bodyRows += (STATE.mxMetric==='qty')
+        ? '<tr><td class="mx-metric'+pfoc+'">'+esc(plabel)+'</td>'+qr1+'<td class="num'+pfoc+'">'+fmtN(tqn)+'</td></tr>'
+        : '<tr><td class="mx-metric'+pfoc+'">'+esc(plabel)+'</td>'+pr1+'<td class="num'+pfoc+'">'+(tpn?tpn:'')+'</td></tr>';
     }
   } else {
-    bodyRows = '<tr><td class="mx-metric">去重患者数</td>'+pRow+'<td class="num">'+fmtN(m.totalP)+'</td></tr>'
-             + '<tr><td class="mx-metric">销售支数</td>'+qRow+'<td class="num">'+fmtN(m.totalQ)+'</td></tr>';
+    bodyRows = (STATE.mxMetric==='qty')
+      ? '<tr><td class="mx-metric">销售支数</td>'+qRow+'<td class="num">'+fmtN(m.totalQ)+'</td></tr>'
+      : '<tr><td class="mx-metric">去重患者数</td>'+pRow+'<td class="num">'+fmtN(m.totalP)+'</td></tr>';
   }
-  sumEl.innerHTML = '<h3>销量盘点汇总 · '+esc(dimTxt)+'维度 · 适应症：'+esc(catTxt)+' · 窗口：'+esc(winTxt)+'</h3>'
+  sumEl.innerHTML = '<h3>销量盘点汇总 · '+esc(dimTxt)+'维度 · 适应症：'+esc(catTxt)+' · 窗口：'+esc(winTxt)+' · 指标：'+(STATE.mxMetric==='qty'?'销售支数':'患者人数')+'</h3>'
     + '<div class="mx-tbl-wrap"><table class="hb-tbl'+(m.split?' mx-split':'')+(m.items.length>30?' mx-wide':'')+'"><thead><tr>'+head+'</tr></thead><tbody>'
     + bodyRows
     + '</tbody></table></div>';
@@ -2641,10 +2664,10 @@ function renderMxSummary(){
     + ' · 共 <b>'+m.items.length+'</b> 个分类项。'
     + '行=<b>指标</b>（去重患者数=oneid+开票抬头 去重；销售支数=转化后数量），列=<b>分类项</b>。'
     + '同一分类项内按 oneid+开票抬头 去重；<b>去重患者数跨分类项不可相加</b>（同一患者可购多个分类项），'
-    + '「合计」列为全体合并去重人数与支数总计。';
+    + '「合计」列为全体合并去重值。当前显示指标=<b>'+(STATE.mxMetric==='qty'?'销售支数':'患者人数')+'</b>（可在上方「指标」切换），各行与合计均为该指标口径。';
   if(m.split){
-    note += ' 当前已按药品筛选，行按<b>药品</b>拆分；每个药品组内为该药品在该分类项的去重患者数与销售支数，'
-          + '末列<b>药品合计</b>为该药品跨全部分类项的合并去重人数与支数总计，'
+    note += ' 当前已按药品筛选，行按<b>药品</b>拆分（每药一行，显示当前指标）；'
+          + '末列<b>药品合计</b>为该药品跨全部分类项的合并去重值（当前指标口径），'
           + '<b>各药品组之间不可相加</b>（同一患者可能购多个药品）。';
   }
   if(m.capped) note += ' 医院维度按销售支数仅列示前 '+MX_HOSP_TOP+' 家（其余 '+m.capped+' 家未列示，合计仍为全量口径）。';
@@ -4799,6 +4822,7 @@ document.getElementById('mxFilter').addEventListener('change', e=>{
   if(!t || !t.name) return;
   if(t.name === 'mxDim'){ STATE.mxDim = t.value; renderMxSummary(); }
   else if(t.name === 'mxCat'){ STATE.mxCat = t.value; renderMxSummary(); }
+  else if(t.name === 'mxMetric'){ STATE.mxMetric = t.value; renderMxSummary(); }
 });
 /* 药品筛选模式切换（多选 / 单选） */
 (function initMxProdMode(){
