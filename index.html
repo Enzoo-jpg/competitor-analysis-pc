@@ -216,6 +216,9 @@
   .mx-radio.on input{accent-color:#fff;}
   .mx-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .mx-tbl-wrap table.hb-tbl{min-width:100%;table-layout:fixed;}
+  /* 2026-10-30 医院维度全量：列数多时切 auto 布局，表格按内容展开、容器横向滚动 */
+  .mx-tbl-wrap table.mx-wide{table-layout:auto;}
+  .mx-tbl-wrap table.mx-wide th.mx-hd{max-width:none;}
   /* 首列（指标名）固定宽度，禁止换行 —— 避免被压缩成竖排 */
   .mx-tbl-wrap th.mx-metric, .mx-tbl-wrap td.mx-metric{
     width:92px;min-width:92px;max-width:92px;white-space:nowrap;text-align:left;
@@ -2328,7 +2331,7 @@ function destroyChart(name){
    口径红线：去重患者数跨分类项【不可相加】（同一患者可购多个分类项），合计列取全体去重值 */
 const MX = { items:[], totalP:0, totalQ:0, capped:0, split:false, prodRows:[], cellMap:new Map(), prodTotals:new Map() };
 const MX_DIMS = [{k:'prod',t:'药品'},{k:'city',t:'城市'},{k:'hosp',t:'医院'}];
-const MX_HOSP_TOP = 20;   // 医院维度列数上限（保证可读性；合计仍为全量口径）
+const MX_HOSP_TOP = Infinity; // 2026-10-30 用户拍板：医院维度界面与导出均全量，不再 TOP 截断（capped 恒 0）
 
 /* 药品筛选：返回生效的药品集合
    - null（默认）= 全部药品
@@ -2413,7 +2416,7 @@ function buildMxSummary(){
     totalQ += r.convQty;
   }
   let items = Array.from(map.values());
-  // 医院维度：医院数可达数百，列过多不可读 -> 按支数取 TOP N
+  // 医院维度：2026-10-30 起全量列示（不再按支数 TOP 截断），合计与明细始终同口径
   let capped = 0;
   if(dim==='hosp' && items.length > MX_HOSP_TOP){
     items.sort((a,b)=> b.qty-a.qty || String(a.key).localeCompare(String(b.key),'zh'));
@@ -2630,7 +2633,7 @@ function renderMxSummary(){
              + '<tr><td class="mx-metric">销售支数</td>'+qRow+'<td class="num">'+fmtN(m.totalQ)+'</td></tr>';
   }
   sumEl.innerHTML = '<h3>销量盘点汇总 · '+esc(dimTxt)+'维度 · 适应症：'+esc(catTxt)+' · 窗口：'+esc(winTxt)+'</h3>'
-    + '<div class="mx-tbl-wrap"><table class="hb-tbl'+(m.split?' mx-split':'')+'"><thead><tr>'+head+'</tr></thead><tbody>'
+    + '<div class="mx-tbl-wrap"><table class="hb-tbl'+(m.split?' mx-split':'')+(m.items.length>30?' mx-wide':'')+'"><thead><tr>'+head+'</tr></thead><tbody>'
     + bodyRows
     + '</tbody></table></div>';
   // 口径说明
